@@ -167,24 +167,42 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     assert_equal 300, Releases::Catalog.payload("catalog")["next_check_ttl"]
   end
 
-  test "switching to stable immediately excludes cached alpha metadata and old signed sequences cannot replace authority" do
-    refresh
-    Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "stable")
-    assert_empty Releases::Catalog.verified_items
-    assert_nil Releases::Catalog.view["candidate"]
-    Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
-    assert_equal "2.0.0-alpha.2", Releases::Catalog.view["candidate"]["version"]
-    @metadata["manifest"]["sequence"] = 2
-    @metadata["signature"] = signed(@metadata["manifest"], @release_signer)
-    Releases::Catalog.refresh!(source: @source)
-    good = Releases::Catalog.view["candidate"]["release_id"]
-    @metadata["manifest"]["sequence"] = 1
-    @metadata["signature"] = signed(@metadata["manifest"], @release_signer)
-    Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
-    Releases::Catalog.refresh!(source: @source)
-    assert_equal good, Releases::Catalog.view["candidate"]["release_id"]
-    assert_equal 2, Releases::Catalog.payload("trust").dig("sequences", "alpha", "sequence")
-    assert_equal "release_check_unavailable", Releases::Catalog.payload("catalog")["error"]
+  # Metadata channel/replay is a deterministic service contract. Actual native
+  # clock holds remain separate failures, never reconciled by this fixture.
+  def with_metadata_clock
+    directory = File.join(@operator_root, "metadata-clock")
+    Dir.mkdir(directory, 0o700)
+    clock = Railpress::SecurityClock.new(directory, elapsed: -> { 1000.0 }, domain: -> { "synthetic-release-metadata-domain" })
+    original = Railpress::SecurityClock.method(:for_application)
+    travel_to(Time.now, with_usec: true) do
+      Railpress::SecurityClock.define_singleton_method(:for_application) { clock }
+      assert_nil clock.sample["anomaly"]
+      yield
+    end
+  ensure
+    Railpress::SecurityClock.define_singleton_method(:for_application, original) if original
+  end
+
+  test "stable channel and replay policy under a stable synthetic security clock" do
+    with_metadata_clock do
+      refresh
+      Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "stable")
+      assert_empty Releases::Catalog.verified_items
+      assert_nil Releases::Catalog.view["candidate"]
+      Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
+      assert_equal "2.0.0-alpha.2", Releases::Catalog.view["candidate"]["version"]
+      @metadata["manifest"]["sequence"] = 2
+      @metadata["signature"] = signed(@metadata["manifest"], @release_signer)
+      Releases::Catalog.refresh!(source: @source)
+      good = Releases::Catalog.view["candidate"]["release_id"]
+      @metadata["manifest"]["sequence"] = 1
+      @metadata["signature"] = signed(@metadata["manifest"], @release_signer)
+      Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
+      Releases::Catalog.refresh!(source: @source)
+      assert_equal good, Releases::Catalog.view["candidate"]["release_id"]
+      assert_equal 2, Releases::Catalog.payload("trust").dig("sequences", "alpha", "sequence")
+      assert_equal "release_check_unavailable", Releases::Catalog.payload("catalog")["error"]
+    end
   end
 
   test "combined composition reports signed completion preserves overlays and refuses duplicate execution" do
@@ -246,5 +264,32 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     refute Releases::Catalog.settings["enabled"]
     assert_empty ReleaseRequest.all
     assert_equal @old_theme.id, ThemeState.first.active_installation_id
+  end
+
+  test "an uncertain native promotion result cannot be mislabeled as a staging only failure" do
+    combined_host; refresh
+    request = Releases::Combined.submit!(actor: @owner, release_id: @release_fixture["release_id"], request_id: SecureRandom.uuid)
+    staged = Railpress::NativeHost.sign({ "state" => "STAGED", "error" => nil,
+      "request_id" => request.request_key, "release_id" => request.release_digest }, @status_signer)
+    staging = Object.new; staging.define_singleton_method(:stage) { |**_| staged }
+    host = Object.new; host.define_singleton_method(:perform) { |_| raise IOError, "uncertain native result" }
+    operator = Releases::CombinedOperator.new(staging: staging, host: host, prepare_stage: ->(*) { }, approve_promote: ->(*) { },
+      signer: @status_signer, health: ->(_) { flunk "Health must await a verified host result" }, lock_root: @operator_root)
+    assert_equal "CORE_UPDATE_FAILED", operator.perform(request)["state"]
+    assert_equal "CORE_UPDATE_FAILED", Releases::Combined.result(request)["state"]
+    assert_equal @old_theme.id, ThemeState.first.active_installation_id
+    refute Releases::Combined.result(request)["automatic_database_restore"]
+  end
+  test "a held security clock prevents outbound checks and creates no update authority" do
+    Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
+    clock = Object.new
+    clock.define_singleton_method(:sample) { { "anomaly" => { "code" => "synthetic-untrusted-step" } } }
+    calls = 0
+    source = Object.new
+    source.define_singleton_method(:releases) { calls += 1; raise "Network must not run" }
+    assert_nil Releases::Catalog.refresh!(source: source, clock: clock)
+    assert_equal 0, calls
+    assert_empty Releases::Catalog.payload("catalog")
+    assert_empty ReleaseRequest.all
   end
 end

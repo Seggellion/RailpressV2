@@ -34,9 +34,9 @@ module Releases
       raise Combined::Conflict, "Verified staging did not complete." unless staged.dig("statement", "state") == "STAGED" && staged.dig("statement", "error").nil?
       Combined.validate!(request, plan)
       @approve_promote.call(@host, request)
+      state = "CORE_UPDATE_FAILED"
       receipt = @host.perform(request.request_key)
       Requests.accept!(request: request, receipt: receipt)
-      state = "CORE_UPDATE_FAILED"
       core = Requests.receipt_for(request.reload)
       raise Combined::Conflict, "Core operator did not report this exact active release." unless core["state"] == "ACTIVE" && core["error"].nil? && core["active_release"] == request.release_digest
       state = "CORE_UPDATED_THEME_REVIEW_REQUIRED"
