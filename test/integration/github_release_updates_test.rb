@@ -8,6 +8,22 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
   setup do
     release_setup
     travel_back
+    # Mock-transport service/HTTP contract tests need a stable synthetic time
+    # precondition. Actual host-clock observations are retained separately and
+    # native topology qualification does not use this clock.
+    @contract_original_clock = Railpress::SecurityClock.method(:for_application)
+    actual = @contract_original_clock.call.sample
+    evidence = Rails.root.join("docs/evidence", ENV.fetch("RAILPRESS_EVIDENCE_MILESTONE", "R10-contract"))
+    FileUtils.mkdir_p(evidence)
+    File.write(evidence.join("github-contract-clock-#{SecureRandom.uuid}.json"), JSON.generate({
+      "test" => name, "observed_actual_anomaly" => actual["anomaly"], "observed_actual_generation" => actual["generation"],
+      "service_test_clock" => "explicit deterministic fixture only", "host_qualification" => "NOT ATTESTED" }))
+    clock_path = File.join(@operator_root, "contract-clock")
+    Dir.mkdir(clock_path, 0o700)
+    @contract_clock = Railpress::SecurityClock.new(clock_path, elapsed: -> { 1000.0 }, domain: -> { "synthetic-release-contract-domain" })
+    freeze_time(with_usec: true)
+    fixture_clock = @contract_clock
+    Railpress::SecurityClock.define_singleton_method(:for_application) { fixture_clock }
     @saved_update_env = ENV.to_h.slice("RAILPRESS_RELEASE_PUBLIC_TRUST", "RAILPRESS_NATIVE_PUBLIC_STATUS", "RAILPRESS_DEPLOYMENT_ID")
     ENV["RAILPRESS_RELEASE_PUBLIC_TRUST"] = File.join(@operator_root, "trust.json")
     @old_theme = stage("dusk", version: "1.0.0")
@@ -25,6 +41,8 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     @source.define_singleton_method(:metadata) { |_| data }
   end
   teardown do
+    Railpress::SecurityClock.define_singleton_method(:for_application, @contract_original_clock) if @contract_original_clock
+    travel_back
     %w[RAILPRESS_RELEASE_PUBLIC_TRUST RAILPRESS_NATIVE_PUBLIC_STATUS RAILPRESS_DEPLOYMENT_ID].each { |key| ENV[key] = @saved_update_env[key] }
     release_teardown
   end
