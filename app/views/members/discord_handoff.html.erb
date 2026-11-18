@@ -1,0 +1,11 @@
+<% content_for :title, "Continue to Discord · Railpress" %>
+<h1>Continue to Discord.</h1>
+<p role="status">No identity has been verified and no staff access has been granted.</p>
+<% if Membership::Providers.current.status("discord", origin: @site.canonical_origin) == "synthetic_verified" %>
+  <p class="notice">Synthetic local provider: this qualification flow uses no real Discord account.</p>
+<% end %>
+<p>The next link opens <strong><%= @discord_destination_host %></strong>. The provider receives your account ID<%= @discord_email_requested ? " and verified email claim" : "" %> request. No bot or server permissions are requested.</p>
+<% if @discord_linking %><p>You are connecting an account to your current membership. Its verified email must match your Member mailbox.</p><% end %>
+<p>Continue only if you chose this verification. The pending request expires after five minutes. You can cancel without granting access.</p>
+<p><%= link_to "Continue to Discord", @discord_authorization_url, rel: "noreferrer noopener", data: { discord_handoff: true } %></p>
+<p><%= link_to "Cancel and return", @discord_linking ? members_account_path : members_login_path %></p>

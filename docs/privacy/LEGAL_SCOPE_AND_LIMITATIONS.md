@@ -1,0 +1,11 @@
+# Legal scope and limitations
+
+Engineering policy reviewed November15,2026; deployment-specific legal review remains required before compliance or consent/exemption marketing.
+
+The [European Commission](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en) identifies IP addresses and account identifiers as potential personal data; disabling cookies does not remove all processing. Its [GDPR application guidance](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/application-gdpr_en) describes technology-neutral obligations. Applicable territorial/controller/processor duties require review for the actual organization and services.
+
+[EDPB Guidelines2/2023](https://www.edpb.europa.eu/documents/guideline/guidelines-22023-on-technical-scope-of-art-53-of-eprivacy-directive_en) concern terminal-equipment storage/access beyond a product's cookie label. Inspect mechanisms and purposes rather than claiming a blanket exemption. The [ICO](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/) describes purpose-specific exceptions and conditions; Railpress does not decide their applicability to a deployment.
+
+[Canadian PIPEDA principles](https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/) and [BC PIPA](https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/03063_01) include purpose/retention/safeguard and individual-access duties. Which rules apply depends on the organization and processing, including cross-border providers. No universal deadline or jurisdictional outcome is encoded here.
+
+Approved description: “Privacy-first anonymous browsing limits nonessential visitor storage and automatic third-party resources on supported public pages.” Prohibited inference: GDPR-exempt, automatically compliant, no personal data, no IP logs, guaranteed anonymity, instant erasure or complete consent management. Security cookies and user-selected mail/Discord processing remain disclosed. Legal/hosting/provider review, actual browser/runtime evidence and launch approvals remain separate gates.

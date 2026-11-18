@@ -1,0 +1,34 @@
+{
+  "format": "railpress.core-brand.v1",
+  "mark_id": "folded-page-and-rails-1",
+  "source": "railpress-mark-919b0528d6b77f0c.svg",
+  "origin": "Original authored SVG interpreting an actual image_gen concept. No third-party/supplied logo input. Generated raster artifacts rejected, not redistributed.",
+  "approval": "Owner approved exact SVG and PNG/ICO derivatives during A02",
+  "license": "MIT for these source assets; no trademark exclusivity guarantee",
+  "files": [
+    {
+      "path": "public/brand/favicon-9344262c9cd4eab3.png",
+      "sha256": "9344262c9cd4eab3eabf37f29a3b1dea47b8decde4fd03ab5605b19cb6aaabc5",
+      "bytes": 939,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/favicon-da7eff0a98a3fc0a.ico",
+      "sha256": "da7eff0a98a3fc0a6807704edb9541cf4ec55475babad2b7a715f8faee3a9dd0",
+      "bytes": 2713,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/railpress-mark-919b0528d6b77f0c.svg",
+      "sha256": "919b0528d6b77f0c23bc2db3c6e1726417d59b9e0dd45722db93c32a4f4220d2",
+      "bytes": 831,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/touch-icon-6e13f7b56aa206a9.png",
+      "sha256": "6e13f7b56aa206a944fac17c13dedf92beb6e9eb185f98dc4a28888e9e96ceab",
+      "bytes": 4827,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    }
+  ]
+}

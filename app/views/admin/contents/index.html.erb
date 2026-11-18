@@ -1,0 +1,10 @@
+<% content_for :title, "#{@kind ? @kind.pluralize : 'Content'} · Railpress" %>
+<h1><%= @kind ? @kind.pluralize : "Pages and posts" %></h1>
+<p><%= link_to "New page", new_admin_content_path(kind: "Page") %> · <%= link_to "New post", new_admin_content_path(kind: "Post") %></p>
+<%= form_with url: admin_contents_path, method: :get, data: { turbo: false } do %>
+<%= hidden_field_tag :kind, @kind, id: nil if @kind %><%= label_tag :q, "Search titles" %><%= search_field_tag :q, @query, maxlength: 160 %>
+<%= label_tag :status, "Status" %><%= select_tag :status, options_for_select([["All statuses",""]] + %w[draft pending published scheduled trashed].map { |state| [state.humanize, state] }, @status) %><button>Filter content</button><% end %>
+<p>Authors see their own work. Publishing promotes the saved working copy to a separate public snapshot.</p>
+<% if @contents.empty? %><p>No matching content. Create a page or post, or change the filters.</p><% end %>
+<ul class="content-list"><% @contents.each do |item| %><li><%= link_to item.title, edit_admin_content_path(item) %> · <%= item.type %> · <span class="state-pill"><%= item.status %></span><%= " · review requested" if item.pending_review? %> · by <%= item.author.username %></li><% end %></ul>
+<nav aria-label="Content pages"><%= link_to "Previous", admin_contents_path(kind: @kind, q: @query, status: @status, page: @page - 1) if @page > 1 %> <%= link_to "Next", admin_contents_path(kind: @kind, q: @query, status: @status, page: @page + 1) if @more %></nav>

@@ -1,0 +1,16 @@
+<%
+tree = lambda do |items|
+  safe_join(items.map do |item|
+    tag.li do
+      if item.children.any?
+        tag.details(data: { disclosure: true }, class: "dusk-submenu") do
+          safe_join([tag.summary(item.label), tag.ul(class: "dusk-sub-list") { safe_join([tag.li { link_to("Overview: #{item.label}", item.url) }, tree.call(item.children)]) }])
+        end
+      else
+        link_to(item.label, item.url)
+      end
+    end
+  end)
+end
+%>
+<footer class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %> dusk-footer dusk-footer-<%= theme.options.fetch("footer_style", "standard") %>"><div class="dusk-wrap"><div class="dusk-footer-top"><div><p class="dusk-footer-brand"><%= theme.options["brand_label"].to_s.empty? ? theme.site.title : theme.options["brand_label"] %></p><p class="dusk-footer-tagline"><%= theme.site.tagline %></p></div><% if theme.navigation.footer.any? %><nav aria-label="Footer"><ul class="dusk-footer-links"><%= tree.call(theme.navigation.footer) %></ul></nav><% end %><a class="dusk-text-link" href="<%= theme.site.search_url %>">Search this site</a></div><div class="dusk-footer-bottom"><p><%= theme.options.fetch("footer", "") %></p><p>Published with Railpress <span aria-hidden="true">/</span> Dusk</p></div></div></footer>

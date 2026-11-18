@@ -1,0 +1,10 @@
+<% content_for :title, "Site archive · Railpress" %>
+<h1>Site archive</h1><p><%= link_to "Import / Export", admin_imports_path %></p>
+<p role="status">Export: <strong><%= @export.state %></strong></p>
+<% if @export.state == "ready" %>
+<p>This archive is plaintext. Store and transfer private editorial material with access controls and encryption provided by your operator.</p>
+<dl><dt>Integrity checksum (SHA-256)</dt><dd><code><%= @export.archive_sha256 %></code></dd><dt>Bytes</dt><dd><%= @export.archive_bytes %></dd></dl>
+<p><%= link_to "Download approved archive", download_admin_site_export_path(@export.public_id) %></p>
+<pre><%= JSON.pretty_generate(@export.report) %></pre>
+<% elsif @export.failure %><p role="alert"><%= @export.report["error"] || @export.failure %></p>
+<% else %><p>The native worker has not completed this archive. <%= link_to "Check progress", admin_site_export_path(@export.public_id) %></p><% end %>

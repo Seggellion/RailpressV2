@@ -1,0 +1,9 @@
+<h1><%= @term&.name || "Blog" %></h1>
+<% if @presenters.empty? %><p>No published posts yet.</p><% end %>
+<% @presenters.each do |item| %>
+  <article><h2><%= link_to item.title, item.path %></h2><p><%= item.excerpt %></p></article>
+<% end %>
+<nav aria-label="Pagination">
+  <% if @page > 1 %><%= link_to "Previous page", "#{@archive_path}?page=#{@page - 1}" %><% end %>
+  <% if @more %><%= link_to "Next page", "#{@archive_path}?page=#{@page + 1}" %><% end %>
+</nav>

@@ -1,0 +1,13 @@
+<% content_for :title, "Accounts · Railpress" %><h1>Accounts and member verification</h1>
+<p>Only the Owner can change this policy. Staff accounts and recovery are managed separately. Saving a policy revokes Member sessions and pending proofs; it cannot create or promote staff.</p>
+<%= form_with url: admin_accounts_path, method: :patch, scope: :accounts do |form| %>
+  <%= hidden_field_tag :revision, @site.membership_version %>
+  <%= render "shared/membership_choices", form: form, choices: @site.attributes.slice("membership_mode", "member_registration_enabled", "member_email_required"), origin: @site.canonical_origin %>
+  <%= form.submit "Save account policy" %>
+<% end %>
+<p><%= link_to "View Member sign-in", members_login_path %> · <%= link_to "Staff users and roles", admin_users_path %></p>
+<p>Readiness is an operator attestation, not a live deliverability or Discord callback guarantee. Synthetic qualification is labelled separately. Check provider privacy, callback registration, logs and retention before public activation.</p>
+
+<h2>Retained email attempts</h2>
+<p>Pending: <%= @delivery_counts.fetch("pending", 0) %>; SMTP accepted: <%= @delivery_counts.fetch("delivered", 0) %>; failed: <%= @delivery_counts.fetch("failed", 0) %>; consumed: <%= @delivery_counts.fetch("consumed", 0) %>.</p>
+<p>SMTP acceptance is not a verified Member or confirmed inbox delivery. Late bounce status is unknown without separately qualified provider integration. Expired proof records are removed by bounded cleanup. Failures require operator attention; tokens and addresses are not displayed here.</p>

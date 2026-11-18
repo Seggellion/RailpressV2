@@ -1,0 +1,10 @@
+<% content_for :title, "Confirm your mailbox · Railpress" %>
+<h1>Confirm your mailbox.</h1><p>A request alone does not verify you. Open the link in the browser where you requested it, then confirm below. Visiting this page does not consume a proof. Links work once and expire after 15 minutes.</p>
+<%= form_with url: members_verify_path do |form| %>
+  <%= form.label :verification_token, "Verification token" %>
+  <%= form.text_area :verification_token, required: true, maxlength: 2048, autocomplete: "off", spellcheck: false, rows: 4, data: { member_verification_token: true } %>
+  <%= form.submit "Verify and continue" %>
+<% end %>
+<%= javascript_include_tag "member_verification", defer: true %>
+<p>The email link carries its token in a browser-only fragment. It is removed from the address bar before confirmation. With JavaScript disabled, copy the manual token from the email into this form.</p>
+<p><%= link_to "Request a fresh link", members_login_path %></p>

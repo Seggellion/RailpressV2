@@ -1,0 +1,17 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join(".local", "state", "media", "test", ENV.fetch("RAILPRESS_TEST_ENGINE", "unconfigured"), ENV.fetch("RAILPRESS_TEST_PROFILE", "default")) %>
+
+local:
+  service: Disk
+  root: <%= ENV.fetch("RAILPRESS_STORAGE_ROOT") { Rails.root.join(".local", "state", "media", Rails.env) } %>
+
+# Optional private backend, configured by the host; no public URLs or inline keys.
+gcs:
+  service: RailpressGcs
+  bucket: <%= ENV.fetch("RAILPRESS_GCS_BUCKET", "unconfigured-bucket").to_json %>
+  project: <%= ENV.fetch("RAILPRESS_GCS_PROJECT", "unconfigured-project").to_json %>
+  credentials: <%= ENV["RAILPRESS_GCS_CREDENTIALS_FILE"].to_json %>
+  prefix: <%= ENV.fetch("RAILPRESS_GCS_PREFIX", "").to_json %>
+  auth_method: <%= ENV.fetch("RAILPRESS_GCS_AUTH_METHOD", "adc").to_json %>
+  identity_source: <%= ENV.fetch("RAILPRESS_GCS_ADC_SOURCE", "automatic").to_json %>

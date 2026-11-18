@@ -1,0 +1,7 @@
+<p>Member registration is optional and separate from the secure local Owner account. A plain publishing site can leave it disabled.</p>
+<%= form.label :membership_mode, "Membership and verification" %><%= form.select :membership_mode, [["Disabled", "disabled"], ["Email", "email"], ["Discord", "discord"], ["Email or Discord", "both"]], selected: choices.fetch("membership_mode", "disabled") %>
+<p class="hint">Email or Discord offers either independently verified method. It does not require both proofs. Choosing a method does not open registration.</p>
+<div class="checkbox"><%= form.check_box :member_email_required, checked: choices.fetch("member_email_required", true) %><%= form.label :member_email_required, "Require a verified email from Discord" %></div>
+<div class="checkbox"><%= form.check_box :member_registration_enabled, checked: choices.fetch("member_registration_enabled", false) %><%= form.label :member_registration_enabled, "Explicitly enable new member registration after provider verification" %></div>
+<p>No SMTP or Discord secret belongs in this form. Your host operator configures and verifies providers privately. Unavailable methods cannot be enabled. Verification never grants staff roles. Staff Owner recovery remains independent.</p>
+<dl><% %w[email discord].each do |method| %><dt><%= method.capitalize %> readiness</dt><dd><%= Membership::Providers.current.status(method, origin: origin).humanize %></dd><% end %></dl>

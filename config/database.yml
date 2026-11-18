@@ -1,0 +1,2 @@
+<% require_relative "database_configuration" %>
+<%= { ENV.fetch("RAILS_ENV", "development") => { "primary" => Railpress::DatabaseConfiguration.build } }.to_json %>

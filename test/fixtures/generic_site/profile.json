@@ -1,0 +1,245 @@
+{
+  "site": {
+    "title": "Synthetic publisher",
+    "tagline": "Neutral developer fixture",
+    "canonical_origin": "https://railpress.org",
+    "locale": "en",
+    "timezone": "UTC",
+    "home_mode": "static"
+  },
+  "pages": [
+    {
+      "slug": "welcome",
+      "title": "Synthetic welcome",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": true
+    },
+    {
+      "slug": "features",
+      "title": "Synthetic features",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "download",
+      "title": "Synthetic download",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "docs",
+      "title": "Synthetic docs",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "docs/getting-started",
+      "title": "Synthetic docs getting started",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "themes",
+      "title": "Synthetic themes",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "about",
+      "title": "Synthetic about",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "roadmap",
+      "title": "Synthetic roadmap",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "changelog",
+      "title": "Synthetic changelog",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "support",
+      "title": "Synthetic support",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "privacy",
+      "title": "Synthetic privacy",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "license",
+      "title": "Synthetic license",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    },
+    {
+      "slug": "security",
+      "title": "Synthetic security",
+      "body": "<p>Original neutral page for developer verification.</p>",
+      "excerpt": "Synthetic page",
+      "meta_title": "Synthetic page",
+      "meta_description": "Neutral fixture",
+      "template_key": "standard",
+      "visibility": "public",
+      "blocks": [],
+      "home_page": false
+    }
+  ],
+  "branding": {
+    "brand_label": "Synthetic publisher"
+  },
+  "menus": [
+    {
+      "name": "Synthetic primary",
+      "locations": [
+        "dusk:primary"
+      ],
+      "items": [
+        {
+          "key": "home",
+          "label": "Synthetic home",
+          "page": "welcome"
+        },
+        {
+          "key": "guide",
+          "label": "Synthetic guide",
+          "page": "features"
+        }
+      ]
+    },
+    {
+      "name": "Synthetic footer",
+      "locations": [
+        "dusk:footer"
+      ],
+      "items": [
+        {
+          "key": "home",
+          "label": "Synthetic home",
+          "page": "welcome"
+        },
+        {
+          "key": "guide",
+          "label": "Synthetic guide",
+          "page": "features"
+        }
+      ]
+    },
+    {
+      "name": "Synthetic mobile",
+      "locations": [
+        "dusk:mobile"
+      ],
+      "items": [
+        {
+          "key": "home",
+          "label": "Synthetic home",
+          "page": "welcome"
+        },
+        {
+          "key": "guide",
+          "label": "Synthetic guide",
+          "page": "features"
+        }
+      ]
+    },
+    {
+      "name": "Synthetic documentation",
+      "locations": [
+        "dusk:documentation"
+      ],
+      "items": [
+        {
+          "key": "home",
+          "label": "Synthetic home",
+          "page": "welcome"
+        },
+        {
+          "key": "guide",
+          "label": "Synthetic guide",
+          "page": "features"
+        }
+      ]
+    }
+  ]
+}

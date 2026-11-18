@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require_relative "../config/environment"
+
+# Invoked only as an owned isolated child. No server listener, worker, cloud
+# client or outbound provider command is started by this production Rails probe.
+ActiveRecord::Base.logger = nil
+site = Site.find_by!(singleton_key: 1)
+db = ActiveRecord::Base.connection_db_config.database
+abort "candidate_identity" unless db == ENV.fetch("RAILPRESS_RECOVERY_DB_NAME") && site.install_id == ENV.fetch("RAILPRESS_RECOVERY_INSTALL_ID")
+clock = Railpress::SecurityClock.for_application.sample
+abort "candidate_clock" unless clock["anomaly"]
+abort "candidate_credentials" unless [ UserSession, PasswordReset, ContentPreview, ThemePreview, NavigationPreview, MemberSession, MemberChallenge, MemberOauthAttempt ].all? { |model| model.count.zero? }
+abort "candidate_workers" unless SolidQueue::Process.count.zero?
+abort "candidate_content_limit" if Content.count > 1000 || ContentRevision.count > 2000
+validate_references = lambda do |snapshot, references|
+  ContentBlocks::Schema.normalize(snapshot["blocks"])
+  expected = MediaLibrary::References.ids(snapshot).sort
+  abort "candidate_media_relationship" unless expected == references.order(:media_asset_id).pluck(:media_asset_id) && MediaAsset.ready.where(id: expected).count == expected.length
+end
+Content.find_each do |content|
+  validate_references.call(content.attributes, content.media_references.where(stage: "draft"))
+  validate_references.call(content.published_snapshot || {}, content.media_references.where(stage: "live"))
+end
+ContentRevision.find_each do |revision|
+  abort "candidate_revision_snapshot" unless revision.snapshot.is_a?(Hash)
+  validate_references.call(revision.snapshot, MediaReference.where(content_revision_id: revision.id, stage: "revision"))
+end
+checks = {}
+routes = { "/up" => 200, "/login" => 200, "/admin" => 303 }
+public_render = "NOT TESTED"
+if ThemeState.first&.active_installation
+  page = Page.publicly_visible.order(:id).detect { |record| MediaLibrary::References.ids(record.published_snapshot).empty? && !record.featured_blob_id }
+  abort "candidate_media_free_page_required" unless page
+  routes[Seo::RouteRegistry.content_path(page, site)] = 200
+  public_render = "VERIFIED media-free published Page through active theme"
+end
+routes.each do |path, expected|
+  env = Rack::MockRequest.env_for("https://localhost#{path}", "HTTP_HOST" => "localhost", "HTTPS" => "on", "rack.url_scheme" => "https")
+  status, headers, body = Rails.application.call(env)
+  body.each { |_part| }
+  body.close if body.respond_to?(:close)
+  abort "candidate_route" unless status == expected
+  checks[path] = status
+end
+puts JSON.generate(status: "VERIFIED", database: db, install_id: site.install_id, scheduling_held: true,
+  production_rails_boot: true, content_revision_media_relationships: "VERIFIED", rack_routes: checks, public_records: Content.publicly_visible.count,
+  public_render: public_render,
+  media_network: "NOT INVOKED", workers: "STOPPED", browser: "NOT TESTED", tls: "NOT TESTED")

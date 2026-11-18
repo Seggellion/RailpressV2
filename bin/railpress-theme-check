@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+require "bundler/setup"
+require_relative "../lib/railpress/theme_smoke"
+abort "Usage: bin/railpress-theme-check DIRECTORY TRUST_STORE_JSON" unless ARGV.length == 2
+begin
+  keys = Railpress::ThemePackage.parse(File.binread(ARGV[1]))
+  bundle = Railpress::ThemePackage.load(ARGV[0], trusted_keys: keys)
+  report = Railpress::ThemeSmoke.call(File.expand_path(ARGV[0]), keys: keys, root: File.expand_path("..", __dir__))
+  raise Railpress::ThemePackage::Invalid, "smoke_digest" unless report["digest"] == bundle.digest
+  puts JSON.generate(report.merge(result: "PASS", theme_api: 1, id: bundle.manifest["id"], version: bundle.manifest["version"]))
+rescue Railpress::ThemePackage::Invalid => error
+  warn "REFUSED: #{error.message}"
+  exit 1
+end

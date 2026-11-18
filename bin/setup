@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require "rbconfig"
+Dir.chdir(File.expand_path("..", __dir__)) do
+  abort "Usage: bin/setup postgresql|mysql2 --confirm-synthetic" unless ARGV.size == 2 && %w[postgresql mysql2].include?(ARGV[0]) && ARGV[1] == "--confirm-synthetic"
+  system(RbConfig.ruby, "-S", "bundle", "check", exception: true)
+  exec RbConfig.ruby, "bin/native_test", ARGV[0], "--confirm-synthetic", "db:migrate"
+end

@@ -1,0 +1,10 @@
+{
+  "format": "railpress.product.v1",
+  "version": "2.0.0-alpha.1",
+  "channel": "alpha",
+  "security_clock": 2,
+  "theme_api": 1,
+  "schema": 14,
+  "jobs": 1,
+  "configuration": 2
+}

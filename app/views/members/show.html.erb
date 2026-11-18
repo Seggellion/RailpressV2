@@ -1,0 +1,20 @@
+<% content_for :title, "Your Member account · Railpress" %>
+<h1>Your Member account.</h1><p role="status">Verified membership grants no staff, publishing or administration privileges.</p>
+<dl><dt>Member reference</dt><dd><%= @member.public_id %></dd><dt>Verified email</dt><dd><%= @member.email || "Not required by this website" %></dd><dt>Email proof</dt><dd><%= @member.email_proof || "None" %></dd><dt>Discord connected</dt><dd><%= @member.member_identities.exists?(provider: "discord") ? "Yes" : "No" %></dd></dl>
+<p>Member sessions last at most one hour. Linking, changing email, disconnecting and closing require proof from the last five minutes. Sign in again if asked. Discord revocation is checked on the next provider sign-in; it does not instantly terminate an already issued local session.</p>
+<%= button_to "Sign out of membership", members_logout_path, method: :delete %>
+<p><%= link_to "Download my account data", members_export_path %> · <%= link_to "Fresh Member sign-in", members_login_path %> · <%= link_to "Return to website", root_path %></p>
+<% if Membership::Policy.method_allowed?(@site, "email") %>
+  <h2>Verify or change your email</h2><p>Confirm the new mailbox in this same signed-in browser. Existing sessions are revoked when it changes. Another Member's mailbox cannot be claimed.</p>
+  <%= form_with url: members_change_email_path do |form| %><%= form.label :email, "New email address" %><%= form.email_field :email, required: true, maxlength: 254, autocomplete: "email" %><%= form.submit "Send confirmation" %><% end %>
+<% end %>
+<% if Membership::Policy.method_allowed?(@site, "discord") && !@member.member_identities.exists?(provider: "discord") %>
+  <h2>Connect Discord</h2><p>Connect only an account you control. Its verified email must match your Member mailbox. Discord will request your account ID and verified email for this connection, even when ordinary sign-in does not require email. Review the local confirmation page before following its provider link. Matching emails never merge accounts automatically.</p>
+  <%= form_with url: members_discord_path do |form| %><%= hidden_field_tag :purpose, "link" %><div class="checkbox"><%= form.check_box :confirmation, required: true %><%= form.label :confirmation, "I confirm I want to connect my Discord account" %></div><%= form.submit "Confirm and continue to Discord" %><% end %>
+<% end %>
+<% if @member.member_identities.exists?(provider: "discord") %>
+  <h2>Disconnect Discord</h2><p>A separately verified mailbox and available email sign-in are required so you retain access.</p>
+  <%= form_with url: members_disconnect_path do |form| %><div class="checkbox"><%= form.check_box :confirmation, required: true, id: "disconnect-confirm" %><%= form.label :confirmation, "Disconnect my Discord identity and revoke sessions", for: "disconnect-confirm" %></div><%= form.submit "Disconnect Discord" %><% end %>
+<% end %>
+<h2>Close membership</h2><p>This closes access and revokes sessions. Your account record is retained for operator review under the website's documented retention policy; this action does not promise instant erasure or deletion of server/provider logs.</p>
+<%= form_with url: members_close_path do |form| %><div class="checkbox"><%= form.check_box :confirmation, required: true, id: "close-confirm" %><%= form.label :confirmation, "Close my membership and revoke access", for: "close-confirm" %></div><%= form.submit "Close membership" %><% end %>

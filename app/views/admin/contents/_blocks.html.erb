@@ -1,0 +1,31 @@
+<section aria-label="Content blocks">
+<h2>Content blocks</h2><p>These semantic blocks use fixed layouts. Contact details do not send messages; comments and contact forms are disabled.</p>
+<%= hidden_field_tag "content[blocks_present]", "1", id: nil %>
+<% Array(@content.blocks).each_with_index do |block, index| %>
+  <% prefix = "content[blocks][#{index}]" %>
+  <fieldset class="content-block"><legend><%= index + 1 %>. <%= block["type"].humanize %></legend><%= hidden_field_tag "#{prefix}[type]", block["type"], id: nil %>
+    <% fields = case block["type"]
+      when "heading" then %w[text]
+      when "paragraph" then %w[html]
+      when "external_media" then %w[heading url]
+      when "hero", "call_to_action" then %w[heading text label url]
+      when "testimonial" then %w[quote attribution]
+      when "contact" then %w[heading address email phone]
+      when "image", "gallery" then %w[caption]
+      else []
+    end %>
+    <% fields.each do |key| %><%= label_tag "block_#{index}_#{key}", key.humanize %><%= text_area_tag "#{prefix}[#{key}]", block[key], id: "block_#{index}_#{key}", rows: key == "html" ? 5 : 2 %><% end %>
+    <% if block["type"] == "heading" %><%= label_tag "block_#{index}_level", "Heading level" %><%= select_tag "#{prefix}[level]", options_for_select([2,3,4], block["level"]), id: "block_#{index}_level" %><% end %>
+    <% if %w[image hero].include?(block["type"]) %><%= label_tag "block_#{index}_media", "Image" %><%= select_tag "#{prefix}[media_id]", options_for_select([["No image",""]] + @media_options, block["media_id"]), id: "block_#{index}_media" %><% end %>
+    <% if block["type"] == "gallery" %><%= label_tag "block_#{index}_gallery", "Gallery images (up to 12)" %><%= hidden_field_tag "#{prefix}[media_ids][]", "", id: nil %><%= select_tag "#{prefix}[media_ids][]", options_for_select(@media_options, block["media_ids"]), multiple: true, id: "block_#{index}_gallery" %><% end %>
+    <% Array(block["items"]).each_with_index do |item, number| %><fieldset><legend>Item <%= number + 1 %></legend><% item.each do |key,value| %><%= label_tag "block_#{index}_item_#{number}_#{key}", key.humanize %><%= text_area_tag "#{prefix}[items][#{number}][#{key}]", value, id: "block_#{index}_item_#{number}_#{key}", rows: 2 %><% end %></fieldset><% end %>
+    <% if %w[features faq].include?(block["type"]) %><button name="add_item" value="<%= index %>">Add another item</button><% end %>
+    <% if index > 0 %><button name="move_block" value="<%= index %>:up">Move block up</button><% end %>
+    <% if index + 1 < Array(@content.blocks).length %><button name="move_block" value="<%= index %>:down">Move block down</button><% end %>
+    <button name="remove_block" value="<%= index %>">Remove this block</button>
+  </fieldset>
+<% end %>
+<%= label_tag "content_add_block", "Add a block" %><%= select_tag "content[add_block]", options_for_select([["Choose a block",""]] + ContentBlocks::Schema::TYPES.map{|type|[type.humanize,type]}), id: "content_add_block" %>
+<%= label_tag "content_pattern_key", "Append a starter pattern" %><%= select_tag "content[pattern_key]", options_for_select([["No pattern",""],["Small business introduction","small_business"],["Contact information and FAQ","contact"]]), id: "content_pattern_key" %>
+<p>Use Save draft changes to apply selected blocks/patterns. Replace all starter wording with your own content.</p>
+</section>

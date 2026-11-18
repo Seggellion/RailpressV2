@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require "bundler/setup"
+require_relative "../lib/railpress/native_host"
+require_relative "../config/environment"
+require_relative "../lib/railpress/native_host/combined_driver"
+command, id, *tail = ARGV
+abort "Usage: railpress-combined-update publish|sweep|prepare UUID|process UUID" unless tail.empty? &&
+  (%w[publish sweep].include?(command) ? id.nil? : %w[prepare process].include?(command) && Railpress::Releases::UUID.match?(id.to_s))
+begin
+  config = Railpress::NativeHost::Config.new(ENV.fetch("RAILPRESS_NATIVE_HOST_ROOT"))
+  driver = Railpress::NativeHost::CombinedDriver.new(config)
+  result = id ? driver.public_send(command, id) : driver.public_send(command)
+  puts JSON.pretty_generate(result)
+rescue StandardError
+  abort "Combined update stopped. Inspect the private operator/combined journals and fresh UTC/backup requirements. No automatic database restore or new authority was granted."
+end

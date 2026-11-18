@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source scripts/native/env.sh
+[[ "$(ruby -e 'print RUBY_VERSION')" == 3.4.12 ]] || { echo "Run scripts/native/bootstrap.sh first"; exit 1; }
+gem list -i foreman -v 0.90.0 > /dev/null || { echo "Run scripts/native/bootstrap.sh to install the pinned development process runner"; exit 1; }
+export PORT="${PORT:-3000}"
+exec foreman _0.90.0_ start -f Procfile.dev "$@"

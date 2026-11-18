@@ -1,0 +1,6 @@
+<h1>Upload an image</h1><%= link_to "Media library", admin_media_assets_path %>
+<p>PNG or JPEG only, up to 8 MiB, 8192 pixels per side and 16 million pixels. Originals are never served. Accepted images are stripped and resized to a 1600px PNG with a 400px thumbnail.</p>
+<%= form_with url: admin_media_assets_path, multipart: true, data: { turbo: false } do %>
+  <%= label_tag :file, "PNG or JPEG file" %><%= file_field_tag :file, accept: "image/png,image/jpeg", required: true %>
+  <%= render "metadata", asset: MediaAsset.new %><button>Validate and upload</button>
+<% end %>

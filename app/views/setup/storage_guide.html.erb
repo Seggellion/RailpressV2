@@ -1,0 +1,13 @@
+<% content_for :title, "Media storage guide · Railpress" %>
+<div class="installer">
+  <p class="eyebrow">Operator guidance</p><h1>Keep your media safe.</h1>
+  <p>Google Cloud Storage with ADC / Workload Identity is the recommended production choice. Disk works without a Google account when a private persistent volume and backup plan are available.</p>
+  <h2>Before choosing GCS</h2>
+  <ol><li>Select a Google Cloud project and existing private bucket in an appropriate region.</li><li>Require uniform bucket-level access and enforced public-access prevention. Verify inherited IAM; public-access prevention does not replace least privilege.</li><li>Give the runtime only bucket-metadata read and object create/read permissions for its approved namespace. Railpress does not need deletion, overwrite, IAM changes or bucket administration.</li><li>Prefer attached workload identity on suitable Google compute, or Workload Identity Federation / explicitly provisioned ADC on external native Linux. Local gcloud user login is not production readiness.</li><li>Provision the nonsecret host configuration and a private processing directory outside releases. Keep any ADC/fallback files outside source and Git. The browser never edits them.</li><li>Apply the same configuration to web and worker services, restart through the host operator and resume setup. A restart does not migrate existing objects.</li></ol>
+  <h2>What verification means</h2>
+  <p>CONFIGURED means local configuration is visible and matches the running adapter. VERIFIED applies only to a specifically observed operation, such as the disposable Disk sentinel. Cloud bucket identity, token acquisition, IAM, uploads and retention remain NOT TESTED until separately authorized disposable-provider tests run. An actual worker report establishes configuration agreement, not the cloud principal or upload capability.</p>
+  <h2>Disk and recovery</h2>
+  <p>Use an app-owned private directory outside release trees. Permissions alone do not prove persistence. Back up SQL, required media and host configuration consistently. Persistent Disk disaster recovery remains unqualified. GCS objects are immutable and physically retained; never delete an object while an accepted backup may reference it. Soft delete and versioning are not assumed and cannot replace live object verification.</p>
+  <p>Detailed operator procedures ship in <code>docs/install/MEDIA_STORAGE_SETUP.md</code> and <code>docs/storage/GCS_INSTALLATION_GUIDE.md</code>. No host, IAM, bucket, billing, credential or retention change is authorized by this guide.</p>
+  <p><%= link_to "Return to setup", setup_path %></p>
+</div>

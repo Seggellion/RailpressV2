@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Raw tool evidence retains original bytes, including tool-generated whitespace.
+docs/evidence/**/*.log -text -whitespace

@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+abort "No web command arguments permitted" unless ARGV.empty?
+port = ENV.fetch("PORT")
+abort "Private high port required" unless port.match?(/\A\d{5}\z/) && port.to_i.between?(49_152, 65_535)
+require "bundler/setup"
+require_relative "../lib/railpress/native_scope"
+Railpress::NativeScope.verify!
+require "puma/cli"
+Puma::CLI.new(["-C", File.expand_path("../config/native_puma.rb", __dir__)]).run

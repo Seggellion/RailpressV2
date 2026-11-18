@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require "bundler/setup"
+require "vips"
+require "json"
+require_relative "../lib/railpress/image_input"
+input, output = ARGV
+abort "Invalid image worker arguments" unless ARGV.length == 2 && File.file?(input) && File.directory?(output)
+bytes = File.binread(input, Railpress::ImageInput::MAX_BYTES + 1)
+info = Railpress::ImageInput.inspect!(bytes)
+Railpress::ImageInput.png_pixels!(bytes, info) if info[:format] == "png"
+Vips.cache_set_max(0)
+image = info[:format] == "png" ? Vips::Image.pngload(input, access: :sequential, fail_on: :warning) : Vips::Image.jpegload(input, access: :sequential, fail_on: :warning)
+raise "Dimension mismatch" unless image.width == info[:width] && image.height == info[:height]
+image = image.autorot.colourspace("srgb")
+image = image.format == :ushort ? image.cast(:uchar, shift: true) : image.cast(:uchar)
+display = image.thumbnail_image(1600, height: 1600, size: :down).copy_memory
+display = Vips::Image.new_from_memory(display.write_to_memory, display.width, display.height, display.bands, display.format).copy(interpretation: :srgb)
+display.pngsave(File.join(output, "display.png"), strip: true, compression: 6)
+thumb = display.thumbnail_image(400, height: 400, size: :down)
+thumb.pngsave(File.join(output, "thumb.png"), strip: true, compression: 6)
+File.write(File.join(output, "info.json"), JSON.generate(width: display.width, height: display.height, source_width: info[:width], source_height: info[:height]))

@@ -1,0 +1,11 @@
+<h1>Search</h1>
+<%= form_with url: "/search", method: :get do |form| %>
+  <%= form.label :q, "Search published pages and posts" %>
+  <%= form.search_field :q, value: @query, maxlength: 160 %><%= form.submit "Search" %>
+<% end %>
+<% if @presenters.empty? %><p>No published results.</p><% end %>
+<% @presenters.each do |item| %><article><h2><%= link_to item.title, item.path %></h2><p><%= item.excerpt %></p></article><% end %>
+<nav aria-label="Pagination">
+  <% if @page > 1 %><%= link_to "Previous page", search_path(q: @query, page: @page-1) %><% end %>
+  <% if @more %><%= link_to "Next page", search_path(q: @query, page: @page+1) %><% end %>
+</nav>

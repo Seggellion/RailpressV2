@@ -1,0 +1,8 @@
+<% content_for :title, "Site identity · Railpress" %>
+<h1>Site identity</h1>
+<%= form_with url: admin_settings_path, method: :patch, data: { turbo: false } do |form| %>
+  <%= render "shared/site_fields", site: @site %>
+  <%= label_tag "site_organization_name", "Organization name (optional, only if this site represents an organization)" %><%= text_field_tag "site[organization_name]", @site.organization_name, id: "site_organization_name", maxlength: 200 %>
+<%= form.submit "Save identity" %>
+<% end %>
+<%= link_to "Back to account home", admin_path %>

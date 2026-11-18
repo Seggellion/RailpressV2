@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require "bundler/setup"
+require_relative "../lib/railpress/releases"
+command = ARGV.shift
+request_id = ARGV.shift
+unless %w[status prepare process].include?(command) && ARGV.empty? &&
+    (command == "status" ? request_id.nil? : Railpress::Releases::UUID.match?(request_id.to_s))
+  abort "Usage: railpress-release status | prepare REQUEST_UUID | process REQUEST_UUID. Activation, migrations and revert are unavailable in M11."
+end
+begin
+  root = ENV.fetch("RAILPRESS_RELEASE_OPERATOR_ROOT")
+  Railpress::Releases::Filesystem.directory!(root, private: true)
+  if command == "status"
+    operator = Railpress::Releases::Operator.new(root: root, context: {}, clock: Railpress::SecurityClock.new(File.join(root, "clock")),
+      signer: OpenSSL::PKey.read(Railpress::Releases::Filesystem.read(File.join(root, "status.key"), maximum: 1024)))
+    puts JSON.pretty_generate(operator.status)
+    exit
+  end
+  require_relative "../config/environment"
+  request = ReleaseRequest.find_by!(request_key: request_id)
+  raise Railpress::Releases::Invalid, "operator_operation" unless %w[inspect stage cancel].include?(request.operation)
+  actor = User.find(request.actor_id)
+  Identity::Capabilities.require!(actor, :inspect_updates)
+  raise Railpress::Releases::Invalid, "owner_authorization_changed" unless actor.auth_version == request.actor_auth_version
+  progress = if command == "process"
+    lambda do |receipt|
+      actor.reload
+      Identity::Capabilities.require!(actor, :inspect_updates)
+      raise Railpress::Releases::Invalid, "owner_authorization_changed" unless actor.auth_version == request.actor_auth_version
+      Releases::Requests.accept!(request: request, receipt: receipt)
+    end
+  end
+  operator = Railpress::Releases::Operator.new(root: root, context: request.operation == "stage" ? Releases::Context.current : {},
+    clock: Railpress::SecurityClock.new(File.join(root, "clock")),
+    signer: OpenSSL::PKey.read(Railpress::Releases::Filesystem.read(File.join(root, "status.key"), maximum: 1024)), progress: progress)
+  if command == "prepare"
+    raise Railpress::Releases::Invalid, "stage_request_required" unless request.operation == "stage"
+    operator.inspect(request_id: request_id, release_id: request.release_digest)
+    puts JSON.pretty_generate(operator.challenge(request_id: request_id))
+  else
+    receipt = operator.public_send(request.operation, request_id: request_id, release_id: request.release_digest)
+    actor.reload
+    Identity::Capabilities.require!(actor, :inspect_updates)
+    raise Railpress::Releases::Invalid, "owner_authorization_changed" unless actor.auth_version == request.actor_auth_version
+    Releases::Requests.accept!(request: request, receipt: receipt)
+    Activity::Recorder.record!(actor: actor, action: "release.completed",
+      outcome: receipt["statement"]["error"] ? "failed" : "succeeded", details: { operation: request.operation, digest: request.release_digest })
+    puts JSON.pretty_generate(receipt)
+  end
+rescue StandardError
+  abort "Release operation refused. Check the private native journal, trusted UTC receipt, operator keys and bounded request identity; the active release was not changed."
+end

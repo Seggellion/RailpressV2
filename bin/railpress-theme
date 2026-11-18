@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+# Native operator staging; no web-upload or trust-on-install.
+require_relative "../config/environment"
+abort "Usage: bin/railpress-theme stage LOCAL_DIRECTORY --owner USERNAME" unless ARGV.length == 4 && ARGV[0] == "stage" && ARGV[2] == "--owner"
+actor = User.find_by!(username_key: ARGV[3].downcase)
+begin
+  package = Themes::Manager.stage!(actor: actor, directory: File.expand_path(ARGV[1]))
+  puts "Validated #{package.public_identity}; preview and activate through owner Themes."
+rescue Railpress::ThemePackage::Invalid, Themes::Manager::Protected, Identity::Capabilities::Denied => error
+  abort "Staging refused: #{error.message}"
+end

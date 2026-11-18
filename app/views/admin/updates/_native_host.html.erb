@@ -1,0 +1,20 @@
+<% observation = @host_status %>
+<section class="admin-card native-host-card" aria-labelledby="native-host-status">
+  <h2 id="native-host-status">Isolated native deployment</h2>
+  <% if observation["verified"] %>
+    <% native = observation["statement"] %>
+    <p>This operator profile controls a disposable local installation. Production deployment and independent UTC remain unqualified.</p>
+    <p>Last confirmed release: <strong><%= native["active_version"] || "Unknown" %></strong> · generation <%= native["generation"] %>. This signed observation may lag traffic; the installed version above comes from this running application.</p>
+    <p>Release identity <code><%= native["active_release"] || "Not established" %></code></p>
+    <% if !observation["fresh"] %><p role="status">Operator observation is stale. Ask the native operator to refresh status before requesting a host action.</p><% end %>
+    <% if native["reconciliation_required"] %><p role="status">A native transition or recovery needs reconciliation. Do not assume the last confirmed release still serves traffic.</p><% end %>
+    <% if native["maintenance"] %><p role="status">An explicit maintenance or recovery operation is in progress.</p><% end %>
+    <p>Disposable restore rehearsal: <%= native["restore_drill_completed"] ? "verified locally" : "not yet qualified" %>. Production backup/restore readiness: UNKNOWN.</p>
+    <% if native["last_operation"] %>
+      <p>Latest native operation: <%= native["last_operation"]["operation"] %> · <strong><%= native["last_operation"]["phase"] %></strong><% if native["last_operation"]["error"] %> · <%= release_failure_message(native["last_operation"]["error"]) %><% end %>.</p>
+    <% end %>
+    <p>Promotion and compatible code revert require separate native approval and fresh time evidence. Code revert preserves the current database. Database/media restore is a separate explicit operator recovery operation with an accepted data-loss window.</p>
+  <% else %>
+    <p role="status">The native observation could not be verified. Host actions are unavailable; no deployment success is assumed.</p>
+  <% end %>
+</section>

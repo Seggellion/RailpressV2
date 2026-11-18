@@ -1,0 +1,15 @@
+# Alpha source preview support boundaries
+
+Railpress Core2.0.0-alpha.1 is a public-source preview candidate under R10. It is not a production-qualified or production-trusted binary release. Historical0.1.0-alpha.1 identities remain in prior evidence and pins. Runtime/schema/asset/source identities belong in the accompanying verified package manifest; a synthetic test signature is not a production trust root.
+
+Qualified local profile: native Linux x86_64 (Ubuntu/WSL test environment), Ruby3.4.12, Bundler4.0.24, Rails8.1.4.1, PostgreSQL16.16 or MySQL8.4.13, libvips8.18.7 and documented image-decoder prerequisites. Windows/macOS application hosting is NOT TESTED. No Docker/Kamal or private website/AI account is required. Dusk1.3.0 uses Theme API1; schema14, jobs1, configuration2, SecurityClock2, portable content archive3.
+
+Disk remains supported for development/test. Optional private GCS integration has local pinned-SDK/synthetic-API qualification only; live provider/IAM/retention compatibility is NOT TESTED. Persistent Disk disaster recovery is UNSUPPORTED in the initial alpha profile.
+
+Local fresh-target recovery is qualified on both engines under the documented limited evidence scope. Keep original SQL unchanged, restore only into a distinct empty identified target, validate all schema/records/security/config/themes/media, revoke ephemeral credentials and rotate private clock authority, hold workers/scheduling, then seek separate maintenance-window cutover authorization. Existing private immutable GCS objects must remain live/readable at pinned keys/generations with verified bytes/checksums. Logical media removal retains physical objects; no physical GC, overwrite, repair, promotion or populated in-place replay. CLI host admission currently remains synthetic-only. Real supported-host/GCS recovery and operational RPO/RTO require separate qualification.
+
+Historical clock/SQL/worker/concurrency observations are retained; successful bounded recovery does not explain their unknown causes. SecurityClock fails closed on unaccepted time/domain changes. Trusted UTC, real update signing/key custody, two-release hosting/availability, live SMTP/Discord, actual Chrome/AT, hosting/TLS/backups and release approval remain separate gates. Same-version alpha.1 is not a strict-newer upgrade; synthetic successor fixtures do not authorize production update/revert.
+
+Public source publication, signed distribution and website deployment are separate decisions. Keep LICENSE, THIRD_PARTY_NOTICES and asset-specific notices. No public byline/editorial, trademark exclusivity, GDPR exemption, zero-personal-data, hosted CI, multi-browser or uninterrupted-availability claim is implied.
+
+R8 amendment: guided Media Storage recommends GCS/ADC, supports explicit operator fallback and bounded nonsecret intent/worker agreement. Optional prefixed media requires native configuration ABI2. Real GCS/IAM, hosting, browser/AT and persistent Disk recovery remain unqualified. The R7 candidate is historical; current amended source needs a separately authorized reviewed pin/release.

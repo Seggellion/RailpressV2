@@ -1,0 +1,61 @@
+<% content_for :title, "Editorial workspace · Railpress" %>
+<%= javascript_include_tag "editor", defer: true %>
+<nav aria-label="Editorial"><%= link_to "All content", admin_contents_path %> · <%= link_to "Public blog", "/blog" %></nav>
+<h1><%= @content.persisted? ? "Edit #{@content.type.downcase}" : "New #{@content.type&.downcase || "draft"}" %></h1>
+<% if @content.persisted? %><p>Status: <strong><%= @content.status %></strong> · Version <%= @content.lock_version %> · Author <%= @content.author.username %><%= " · review requested" if @content.pending_review? %></p><% end %>
+<% if @submitted %><details open><summary>Your unsaved submission</summary><p>Compare this with the current version before applying your change again.</p><pre><%= JSON.pretty_generate(@submitted) %></pre></details><% end %>
+<%= form_with url: @content.persisted? ? admin_content_path(@content) : admin_contents_path, method: @content.persisted? ? :patch : :post, data: { turbo: false, editorial_form: true } do %>
+  <%= hidden_field_tag :kind, @content.type, id: nil %><%= hidden_field_tag :version, @content.lock_version, id: nil %>
+  <div class="editor-grid"><section aria-label="Writing">
+    <%= label_tag "content_title", "Title" %><%= text_field_tag "content[title]", @content.title, id: "content_title", required: true, maxlength: 200 %>
+    <%= label_tag "content_slug", "URL slug" %><%= text_field_tag "content[slug]", @content.slug, id: "content_slug", maxlength: 160, aria: { describedby: "slug_help" } %>
+    <p id="slug_help">Leave blank to derive from the title. Case and accents normalize. Unpublish before changing a live URL.</p>
+    <div class="format-toolbar" role="toolbar" aria-label="Text formatting" hidden>
+      <button type="button" data-format="bold">Bold</button><button type="button" data-format="italic">Italic</button>
+      <button type="button" data-format="formatBlock" data-value="h2">Heading</button><button type="button" data-format="formatBlock" data-value="p">Paragraph</button>
+      <button type="button" data-format="insertUnorderedList">List</button>
+    </div>
+    <%= label_tag "content_body", "Body — rich HTML" %><%= text_area_tag "content[body]", @content.body, id: "content_body", rows: 16, maxlength: 200000, aria: { describedby: "body_help" } %>
+    <div id="visual_editor" contenteditable="true" role="textbox" aria-label="Rich text body" aria-multiline="true" hidden><%= sanitize(@content.body.to_s, tags: Editorial::RichText::TAGS, attributes: Editorial::RichText::ATTRIBUTES) %></div>
+    <p id="body_help">Paragraphs, headings, lists, links and emphasis are supported. Scripts, embeds, styles and attachment HTML are removed on save. Without JavaScript, edit the HTML field.</p>
+    <%= render "blocks" %>
+    <aside aria-label="Content outline"><h2>Outline</h2><ol id="content_outline"><li>Headings appear here while writing.</li></ol></aside>
+    <%= label_tag "content_excerpt", "Excerpt" %><%= text_area_tag "content[excerpt]", @content.excerpt, id: "content_excerpt", rows: 3, maxlength: 1000 %>
+  </section><aside aria-label="Editorial settings">
+    <h2>Publication settings</h2>
+    <%= label_tag "content_visibility", "Visibility after publication" %><%= select_tag "content[visibility]", options_for_select([["Public","public"],["Private — staff preview only","private"]], @content.visibility), id: "content_visibility" %>
+    <%= label_tag "content_template_key", "Page layout" %><%= select_tag "content[template_key]", options_for_select([["Standard","standard"],["Wide","wide"]], @content.template_key), id: "content_template_key" %>
+    <% if @content.type == "Page" %><label><%= hidden_field_tag "content[home_page]", "0", id: nil %><%= check_box_tag "content[home_page]", "1", @content.home_page? %> Use as the static homepage when published</label><% end %>
+    <fieldset><legend>Categories and tags</legend><%= hidden_field_tag "content[term_ids][]", "", id: nil %>
+      <% selected = @content.persisted? ? @content.draft_terms.pluck(:id) : [] %>
+      <% @terms.each do |term| %><label><%= check_box_tag "content[term_ids][]", term.id, selected.include?(term.id), id: "content_term_#{term.id}" %> <%= term.name %> (<%= term.taxonomy.kind %>)</label><% end %>
+      <% if @terms.empty? %><p>No terms yet. A publisher can create them in Categories and tags.</p><% end %>
+    </fieldset>
+    <h3>Featured image</h3><%= label_tag "content_featured_media_id", "Select a validated image" %><%= select_tag "content[featured_media_id]", options_for_select([["No featured image",""]] + @media_options, @content.featured_media_id), id: "content_featured_media_id" %><p><%= link_to "Upload or manage images", admin_media_assets_path %>. Media captions and alt text are captured when changes are saved/published.</p>
+    <%= label_tag "content_meta_title", "Search title" %><%= text_field_tag "content[meta_title]", @content.meta_title, id: "content_meta_title", maxlength: 160 %>
+    <%= label_tag "content_meta_description", "Search description" %><%= text_area_tag "content[meta_description]", @content.meta_description, id: "content_meta_description", rows: 3, maxlength: 320 %>
+    <% if @publisher && @content.persisted? %>
+      <%= label_tag "content_schedule_local", "Schedule in #{@site.timezone}" %><%= datetime_local_field_tag "content[schedule_local]", @content.scheduled_at&.in_time_zone(@site.timezone)&.strftime("%Y-%m-%dT%H:%M"), id: "content_schedule_local" %>
+      <p>Missing or ambiguous daylight-saving times are rejected. Scheduling withdraws any live version until the due time.</p>
+    <% end %>
+  </aside></div>
+  <% if @content.persisted? %>
+    <p>Saving changes leaves the current public snapshot intact. Preview uses the last saved working version.</p>
+    <% if @content.status == "trashed" %>
+      <% if @publisher %><button name="editorial_action" value="restore">Restore as draft</button><% end %>
+    <% else %>
+      <button name="editorial_action" value="save">Save draft changes</button><button name="editorial_action" value="submit">Submit for review</button>
+      <% if @publisher %>
+        <button name="editorial_action" value="publish">Publish saved changes</button><button name="editorial_action" value="schedule">Schedule publication</button>
+        <button name="editorial_action" value="unpublish">Unpublish to draft</button><button name="editorial_action" value="trash">Move to trash</button>
+      <% end %>
+    <% end %>
+  <% else %><button>Create draft</button><% end %>
+<% end %>
+<% if @content.persisted? %><%= button_to "Preview saved draft", preview_admin_content_path(@content), data: { turbo: false } %><p><%= link_to "Revision history and restore", revisions_admin_content_path(@content) %></p><% end %>
+
+<% if @content.persisted? && Identity::Capabilities.allowed?(current_user, :manage_users) %>
+<section><h2>Working-copy authorship</h2><p>Current author: <%= @content.author.username %>. Transferring keeps approved public snapshots and immutable history. It withdraws scheduled approval. Referenced historical accounts must be retained.</p>
+<%= form_with url: admin_content_path(@content), method: :patch, data: { turbo: false } do %>
+<%= hidden_field_tag :version, @content.lock_version, id: nil %><%= label_tag :new_author_id, "Transfer to account" %><%= select_tag :new_author_id, options_from_collection_for_select(User.order(:username), :id, :username, @content.author_id) %><button name="editorial_action" value="reassign">Transfer working-copy author</button><% end %></section>
+<% end %>

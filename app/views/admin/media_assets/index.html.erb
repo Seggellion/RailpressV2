@@ -1,0 +1,12 @@
+<h1>Media library</h1>
+<nav aria-label="Media"><%= link_to "Dashboard", admin_path %> · <%= link_to "Upload image", new_admin_media_asset_path %> · <%= link_to "Pages and posts", admin_contents_path %></nav>
+<%= form_with url: admin_media_assets_path, method: :get, data: { turbo: false } do %>
+  <%= label_tag :q, "Search image titles" %><%= search_field_tag :q, @query, maxlength: 100 %><button>Search</button>
+<% end %>
+<p>Showing up to 50 recent matching images. Authors see their own uploads; media managers see the library.</p>
+<div class="media-grid"><% @assets.each do |asset| %><article>
+  <% if asset.state == "ready" %><%= image_tag private_media_file_path(asset, variant: "thumb"), alt: asset.decorative? ? "" : asset.alt_text, width: 160, loading: "lazy" %><% end %>
+  <h2><%= link_to asset.title, admin_media_asset_path(asset) %></h2><p><%= asset.width %> × <%= asset.height %> · <%= asset.state %></p>
+</article><% end %></div>
+<% if @assets.empty? %><p>No matching images. Upload a PNG or JPEG to begin.</p><% end %>
+<h2>Your recent upload checks</h2><ul><% @attempts.each do |attempt| %><li><%= attempt.state %><%= attempt.reason.present? ? " · #{attempt.reason}" : "" %></li><% end %></ul>

@@ -1,0 +1,7 @@
+/* Original API qualification reference; no external assets. */
+.theme-harbor { color: #164253; line-height: 1.6; }
+.theme-harbor.font-system_serif { font-family: Georgia, serif; }
+.theme-harbor.font-system_sans { font-family: system-ui, sans-serif; }
+.theme-harbor.layout-wide { max-width: 72rem; }
+.theme-harbor.palette-stone { color: #333333; }
+.theme-harbor.home-feature { border-block-start: 0.25rem solid currentColor; }

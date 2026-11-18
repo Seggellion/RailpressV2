@@ -1,0 +1,5 @@
+<% content_for :title, "Themes · Railpress" %><h1>Themes</h1>
+<p>Trusted executable packages use Theme API v1. The default Dusk identity is protected. Version history, private previews and retained-package recovery are core-owned.</p>
+<p><%= link_to "Customize branding and layout", admin_customize_path %></p>
+<%= render "catalog" %>
+<section><h2>Operator staging</h2><p>Use <code>bin/railpress-theme</code> from the authorized host shell to validate a rights-cleared package and provision its operator trust key. Review the package's executable code and provenance before staging. The CLI documents its exact options.</p><p>Runtime ZIP upload, arbitrary package paths, web trust-key import and vendor editing are unavailable. A web role never grants arbitrary host commands.</p></section>

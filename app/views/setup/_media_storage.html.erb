@@ -1,0 +1,22 @@
+<p class="setup-lead">Choose where Railpress keeps validated images. Your host operator secures the connection; cloud credentials never belong in this form.</p>
+<fieldset aria-describedby="storage-choice-help">
+  <legend>Media Storage</legend>
+  <div class="checkbox"><%= form.radio_button :backend, "gcs", checked: choices.fetch("backend", "gcs") == "gcs" %><%= form.label :backend_gcs, "Google Cloud Storage — recommended for production" %></div>
+  <p id="storage-choice-help" class="hint">Use an existing private bucket with ADC / Workload Identity. Railpress can run on native Linux outside Google Cloud. A Google account is not required for Disk.</p>
+  <div class="checkbox"><%= form.radio_button :backend, "local", checked: choices["backend"] == "local" %><%= form.label :backend_local, "Local Disk — development or a verified persistent volume" %></div>
+  <p class="hint">Disk must live outside software releases. Unknown or ephemeral storage can lose media. Verify the volume and backups with your operator; persistent Disk recovery is not yet qualified.</p>
+</fieldset>
+<fieldset aria-describedby="gcs-prerequisites">
+  <legend>Google Cloud Storage configuration</legend>
+  <p id="gcs-prerequisites">For GCS, your operator supplies a project, existing private bucket, scoped permissions and a private local image-processing directory. These fields contain no credentials. Leave them empty when choosing Disk.</p>
+  <%= form.label :project, "Google Cloud project ID" %><%= form.text_field :project, value: choices["project"], minlength: 6, maxlength: 30, autocapitalize: "none", spellcheck: false, aria: { describedby: "gcs-prerequisites" } %>
+  <%= form.label :bucket, "Existing bucket name" %><%= form.text_field :bucket, value: choices["bucket"], maxlength: 222, autocapitalize: "none", spellcheck: false %>
+  <%= form.label :prefix, "Object prefix (optional)" %><%= form.text_field :prefix, value: choices.fetch("prefix", ""), maxlength: 128, autocapitalize: "none", spellcheck: false, aria: { describedby: "prefix-help" } %>
+  <p id="prefix-help" class="hint">A namespace such as <code>media/images</code>; letters, numbers, underscores and hyphens separated by slashes. This does not move an existing library.</p>
+  <%= form.label :auth_method, "Authentication method" %><%= form.select :auth_method, [["ADC / Workload Identity — recommended", "adc"], ["Operator-managed service-account file — explicit fallback", "service_account_file"]], selected: choices.fetch("auth_method", "adc") %>
+  <%= form.label :identity_source, "ADC environment" %><%= form.select :identity_source, [["Discover the operator-configured ADC source", "automatic"], ["Attached Google Cloud workload identity", "attached"], ["Workload Identity Federation on a native host", "federation"], ["Explicit native-host ADC", "native"], ["Local development ADC (not production proof)", "development"]], selected: choices.fetch("identity_source", "automatic") %>
+  <p class="hint">Keyless authentication is preferred. For fallback, the operator provisions a private file outside source and Git and explicitly selects that method in the host configuration. Do not paste JSON, keys or tokens. Missing ADC never triggers automatic fallback.</p>
+</fieldset>
+<div class="setup-note"><strong>Configuration is separate from provider verification.</strong><p>This action checks the selected local configuration and Disk I/O where applicable. It does not create a bucket, contact GCS, change IAM or retention, or prove cloud upload permissions. A changed selection is saved for an explicit operator/restart handoff. Web/worker agreement is checked after setup; GCS is not claimed active on both until then.</p></div>
+<div class="checkbox"><%= form.check_box :storage_limits_ack %><%= form.label :storage_limits_ack, "I understand that provider access, worker agreement, storage durability and recovery need the stated follow-up checks." %></div>
+<p><%= link_to "Media storage prerequisites and operator guide", storage_setup_guide_path %></p>

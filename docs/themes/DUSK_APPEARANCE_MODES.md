@@ -1,0 +1,15 @@
+# Dusk appearance — package1.2.0, Theme API1
+
+`appearance_mode` is exactly light, dark or system, stored in the existing immutable overlay. Signed Dusk declares appearance_modes:[system,light,dark]. This additive API1 capability requires the amended core verifier; older verifiers reject the new package rather than discard settings. Existing packages without the field remain valid. No database schema change: JSON overlays, media references, preview authority and state lock versions remain authoritative.
+
+New Dusk installs default to system. Existing Dusk1.1.3 packages remain byte-identical and light. First staging1.2.0 copies the active retained older Dusk overlay, or the previous Dusk overlay while another theme is active, preserving palette, font, layout, text and validated media. Missing legacy mode becomes explicit light. This appends a snapshot; it never rewrites rows or activates the package. Repeated staging creates no duplicate overlay. With no retained predecessor, the initial choice is system; inspect and explicitly select light if desired before activation.
+
+Appearance → Customize: select Public appearance, save, preview, then activate that exact overlay with the displayed state version. Preview remains current-session/Owner/auth-version/expiry scoped, noindex/no-store. Ordinary visitors keep the published choice. Activation/revert retain site/actor/state/package locks and optimistic conflict rejection. Switching themes retains Dusk history; reverting restores the exact previous overlay.
+
+Existing manage_themes remains Owner-only. Administrator, Editor and Author do not gain theme authority. Any future grant requires separate authority/preview design; no silent role expansion occurs here.
+
+Core emits validated mode/palette in initial body markup and render-blocking signed CSS. Forced modes ignore OS preference; system uses prefers-color-scheme only. No appearance JavaScript, preference cookie, localStorage, sessionStorage, telemetry or visitor account. Native controls receive color-scheme. Default CSS horizon geometry adapts through tokens. Uploaded logo/screenshot colors are retained, never globally inverted; the Owner must review the actual image in both palettes. Existing core favicon and explicit theme favicon authorization are unchanged.
+
+SEO/canonical/robots/schema/status/sitemap/publication/navigation and protected dark admin remain independent. Runtime failure still returns the safe core503 document, which is a core emergency surface rather than a theme appearance override. Native releases must retain persistent theme/overlay identities; refusal of clock admission is not promotion proof. Private-site pin and product release approval remain separate.
+
+Portable format2 carries this nonsensitive typed option under the exact signed package identity. Import requires explicit compatible staging and separate preview/activation approval, never silent publication. Unsupported destinations may reject the additive option; do not discard it to force compatibility. No A04 artwork is included. Consult A03 evidence for actual qualification and deferred gates.

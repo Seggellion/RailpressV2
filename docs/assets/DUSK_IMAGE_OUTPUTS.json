@@ -1,0 +1,273 @@
+{
+  "format": "railpress.dusk-original-art.v1",
+  "tool": "OpenAI built-in imagegen",
+  "model": "not exposed",
+  "ai_generated": true,
+  "input_images": [],
+  "masters": [
+    {
+      "asset": "01-quiet-workshop-hero",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2318003,
+      "sha256": "0fed0fb48fccbb3a1cceac478c7a0beb66223cf62d5e9cfe7fee4fdceb5ec21e"
+    },
+    {
+      "asset": "02-publishing",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2474737,
+      "sha256": "494a53c17dd1dd20303d8cf1e7a6ac4ebe40a8390fb9baadca977fbd20235ced"
+    },
+    {
+      "asset": "03-customization",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2354146,
+      "sha256": "394b3ed3cde24e8946de587f77f337e064c2347a3e8ae245ee0102d2788b9b71"
+    },
+    {
+      "asset": "04-steady-foundation",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2416358,
+      "sha256": "6affb45c9b0de27007de2a5cc0077e98662657d3817c14781b9834024fa7e8a9"
+    },
+    {
+      "asset": "05-editorial-rhythm",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2246639,
+      "sha256": "6b5c3bc296821b1c93825691ef2d066b982a31896502867878e04ad87fc7766e"
+    },
+    {
+      "asset": "06-light-and-shade",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2503155,
+      "sha256": "75eba1b5f647992da2a2ad864e844ecd6225160074c6a330bd201bd1ca68e421"
+    }
+  ],
+  "exports": [
+    {
+      "asset": "01-quiet-workshop-hero",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "58a9e9e8a6e4e7bd13f57a2051a5cb8efbd349b0352bc528abdd75be84b95488",
+      "bytes": 4766,
+      "file": "themes/dusk/assets/art-hero-360.webp"
+    },
+    {
+      "asset": "01-quiet-workshop-hero",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "42c90f0c15979365e83c653b25eaca32744a1c72efa52f85b75dbfa10f1296bb",
+      "bytes": 13406,
+      "file": "themes/dusk/assets/art-hero-768.webp"
+    },
+    {
+      "asset": "01-quiet-workshop-hero",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "f2e7779e0cee46b0dbc665bda2a5871da54eb0b6c85c2b71caea37341dcdc38e",
+      "bytes": 19724,
+      "file": "themes/dusk/assets/art-hero-1024.webp"
+    },
+    {
+      "asset": "01-quiet-workshop-hero",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "87b07a8c0c1680af3395156c06c94fa6427ed8bb3172e2e4eb3cd48bdba85d94",
+      "bytes": 138330,
+      "file": "themes/dusk/assets/art-hero-fallback.png"
+    },
+    {
+      "asset": "02-publishing",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "898aa0f690dcc9c298ceef025bb8f3df0b5e6400bec526970078d3da976e642e",
+      "bytes": 5570,
+      "file": "themes/dusk/assets/art-publishing-360.webp"
+    },
+    {
+      "asset": "02-publishing",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "20c296f80d5f85c1b81e1275c354466c4eaf6ce3723567d41b8589e6b23ee545",
+      "bytes": 17196,
+      "file": "themes/dusk/assets/art-publishing-768.webp"
+    },
+    {
+      "asset": "02-publishing",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "94b0efdd5b99e2ad73fe19aebf892a88f3ded24b8b14c847ea98448ac44ef3a4",
+      "bytes": 26150,
+      "file": "themes/dusk/assets/art-publishing-1024.webp"
+    },
+    {
+      "asset": "02-publishing",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "b67fba2683e7694bcb1fa21a1252c4b208a8287976caf57beab2960234639cf5",
+      "bytes": 169463,
+      "file": "themes/dusk/assets/art-publishing-fallback.png"
+    },
+    {
+      "asset": "03-customization",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "518a24e3e80731bce669908f1fcd61f8519d360dfab4aae62b2f0fac0a5031a1",
+      "bytes": 3652,
+      "file": "themes/dusk/assets/art-customization-360.webp"
+    },
+    {
+      "asset": "03-customization",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "fdb655b202cf15137a3585060d88db72dabeec38f9b58d87ae4c4dcb03c06cec",
+      "bytes": 10104,
+      "file": "themes/dusk/assets/art-customization-768.webp"
+    },
+    {
+      "asset": "03-customization",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "42a43f5b39d23912ecf89068fa2c4f5a642a73068eea7d923409afcf5894dba3",
+      "bytes": 16664,
+      "file": "themes/dusk/assets/art-customization-1024.webp"
+    },
+    {
+      "asset": "03-customization",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "d7bf22734456a3fb09d4a49ef09b8a18c5f23a755d7aed20a2f21a619717db0e",
+      "bytes": 147928,
+      "file": "themes/dusk/assets/art-customization-fallback.png"
+    },
+    {
+      "asset": "04-steady-foundation",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "dd4f3a93d30be0edfa5058c4b2c471c997fe41af21ec457f3edecf89c7c7cc25",
+      "bytes": 4360,
+      "file": "themes/dusk/assets/art-foundation-360.webp"
+    },
+    {
+      "asset": "04-steady-foundation",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "1861cee6564b0082797e53eea3cff990a51962ead594fec0a111cb361b71e315",
+      "bytes": 12166,
+      "file": "themes/dusk/assets/art-foundation-768.webp"
+    },
+    {
+      "asset": "04-steady-foundation",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "134125c84713e048b63f0bad12eb197a67784d820ccb29eaee45273a141aa18b",
+      "bytes": 18148,
+      "file": "themes/dusk/assets/art-foundation-1024.webp"
+    },
+    {
+      "asset": "04-steady-foundation",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "734982abdb78948fbc397fbe398d96c317ed04f7c159b03c8190bd29dfde2133",
+      "bytes": 134712,
+      "file": "themes/dusk/assets/art-foundation-fallback.png"
+    },
+    {
+      "asset": "05-editorial-rhythm",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "1905c0f0f34844af1ea978f3cc392959d6d337dc4f3b612f2a903541c172fef2",
+      "bytes": 3930,
+      "file": "themes/dusk/assets/art-rhythm-360.webp"
+    },
+    {
+      "asset": "05-editorial-rhythm",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "5373570b990fd1caa3793293b8c49674188d566b50d6d90de0b4b7c1e387eab8",
+      "bytes": 11152,
+      "file": "themes/dusk/assets/art-rhythm-768.webp"
+    },
+    {
+      "asset": "05-editorial-rhythm",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "d32650f8fe31aef51094eb106aa049b0a9984ba2dd572eb907daa84225191505",
+      "bytes": 15230,
+      "file": "themes/dusk/assets/art-rhythm-1024.webp"
+    },
+    {
+      "asset": "05-editorial-rhythm",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "6421a6e41a628f0c74c33f214fc0de675765ad752b70b784464e1566c4534ba5",
+      "bytes": 124084,
+      "file": "themes/dusk/assets/art-rhythm-fallback.png"
+    },
+    {
+      "asset": "06-light-and-shade",
+      "width": 360,
+      "height": 240,
+      "format": "webp",
+      "sha256": "6d715d3d7222c5cff7dd8533fa86970f66f038b8f13287650fe52a20bb684c13",
+      "bytes": 4446,
+      "file": "themes/dusk/assets/art-appearance-360.webp"
+    },
+    {
+      "asset": "06-light-and-shade",
+      "width": 768,
+      "height": 512,
+      "format": "webp",
+      "sha256": "18670ee89bc3c877faa7a938e79e0e80695aac9d871f4a3b4f7799fd166c12d2",
+      "bytes": 12824,
+      "file": "themes/dusk/assets/art-appearance-768.webp"
+    },
+    {
+      "asset": "06-light-and-shade",
+      "width": 1024,
+      "height": 683,
+      "format": "webp",
+      "sha256": "bcbcae95b35c33625693aa97d52c7786e5b095b8546cada0a11b22d257cc028d",
+      "bytes": 19448,
+      "file": "themes/dusk/assets/art-appearance-1024.webp"
+    },
+    {
+      "asset": "06-light-and-shade",
+      "width": 360,
+      "height": 240,
+      "format": "png",
+      "sha256": "c4affdb72215690c3bc9b65cff3e7c67403b3b94587cd9364958a7cc906fec98",
+      "bytes": 154957,
+      "file": "themes/dusk/assets/art-appearance-fallback.png"
+    }
+  ],
+  "Owner_permission": "Explicit approval of six masters and24faithful responsive derivatives for MIT distribution; no publication authorization",
+  "collection_sha256": "d7562153c9db8a2fc3a1aacb0511c640d11f8c4b5bb0dcec5019a51a6e33de99",
+  "master_binaries_in_runtime_package": false,
+  "exclusive_copyright_or_noninfringement_certification": false
+}

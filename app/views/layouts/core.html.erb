@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><%= content_for?(:title) ? yield(:title) : "Railpress" %></title>
+    <%= csrf_meta_tags %>
+    <%= render "shared/core_icons" %>
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body class="core">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="core-header"><span class="brand"><%= core_brand_label %></span><span>Publishing starts with ownership.</span></header>
+    <main id="main" class="core-panel" tabindex="-1">
+      <% if flash[:notice] %><p role="status" class="notice"><%= flash[:notice] %></p><% end %>
+      <% if @error %><p role="alert" class="error"><%= @error %></p><% end %>
+      <% if @errors.present? %><ul role="alert" class="error"><% @errors.each do |message| %><li><%= message %></li><% end %></ul><% end %>
+      <%= yield %>
+    </main>
+    <footer class="core-footer">Your site. Your content. Core account tools are independent of themes.</footer>
+  </body>
+</html>

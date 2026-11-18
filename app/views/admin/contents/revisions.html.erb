@@ -1,0 +1,17 @@
+<h1>Revisions: <%= @content.title %></h1><%= link_to "Back to editor", edit_admin_content_path(@content) %>
+<ol><% @revisions.each do |revision| %><li><%= link_to "Version #{revision.number}: #{revision.event}", revisions_admin_content_path(@content, revision: revision.id) %> · <%= revision.actor&.username || "scheduler" %> · <%= revision.created_at.iso8601 %></li><% end %></ol>
+<% if @selected %>
+<h2>Selected revision <%= @selected.number %> compared with the working copy</h2>
+<% current_snapshot = @content.snapshot %>
+<% %w[title slug body excerpt visibility template_key meta_title meta_description term_ids].each do |field| %>
+  <% before = @selected.snapshot[field]; after = current_snapshot[field] %>
+  <% if before != after %><section><h3><%= field.humanize %></h3><h4>Selected revision</h4><pre><%= before %></pre><h4>Current working copy</h4><pre><%= after %></pre></section><% end %>
+<% end %>
+<% if Identity::Capabilities.allowed?(current_user, :publish_others) %>
+<%= form_with url: admin_content_path(@content), method: :patch, data: { turbo: false } do %>
+  <%= hidden_field_tag :version, @content.lock_version, id: nil %><%= hidden_field_tag :revision_id, @selected.id, id: nil %><button name="editorial_action" value="restore_revision">Restore selected revision as a new draft</button>
+<% end %>
+<p>Restoring withdraws the public version and retains the complete history. It does not publish automatically or roll back application code.</p>
+<% end %><% end %>
+
+<nav aria-label="Revision pages"><%= link_to "Newer revisions", revisions_admin_content_path(@content, page: @page - 1) if @page > 1 %> <%= link_to "Older revisions", revisions_admin_content_path(@content, page: @page + 1) if @more %></nav>

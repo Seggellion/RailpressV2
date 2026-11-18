@@ -1,0 +1,5 @@
+<article class="template-<%= @presenter.data.fetch("template_key") %>">
+  <h1><%= @presenter.title %></h1>
+  <% if @presenter.published_at %><p><time datetime="<%= @presenter.published_at.iso8601 %>"><%= @presenter.published_at.in_time_zone(@site.timezone).strftime("%B %-d, %Y") %></time></p><% end %>
+  <%= @presenter.featured_html %><div class="rich-content"><%= @presenter.body_html %><%= @presenter.blocks_html %></div>
+</article>

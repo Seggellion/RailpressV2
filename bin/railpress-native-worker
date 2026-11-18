@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+abort "No worker command arguments permitted" unless ARGV.empty?
+require "bundler/setup"
+require_relative "../lib/railpress/native_scope"
+Railpress::NativeScope.verify!
+Railpress::NativeScope.boot!
+abort "Worker awaits completed setup; no queue connection was opened." unless Railpress::BootstrapState.for_application.installed?
+require File.expand_path("../lib/railpress/native_worker_probe", __dir__) unless defined?(Railpress::NativeWorkerProbe)
+StateIncrementJob.prepend(Railpress::NativeWorkerProbe)
+require "solid_queue/cli"
+SolidQueue::Cli.start([])

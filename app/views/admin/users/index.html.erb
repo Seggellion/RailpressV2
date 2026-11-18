@@ -1,0 +1,28 @@
+<% content_for :title, "Users and roles · Railpress" %>
+<h1>Users and roles</h1>
+<p>Only owners manage accounts. The last owner cannot be removed or demoted. Role changes revoke that user's sessions.</p>
+<% @users.each do |user| %>
+  <section class="account"><h2><%= user.username %></h2><p><%= user.email %></p>
+    <%= form_with url: admin_user_path(user), method: :patch, data: { turbo: false } do |form| %>
+      <%= label_tag "role_#{user.id}", "Role for #{user.username}" %>
+      <%= select_tag "user[role]", options_for_select(User::ROLES, user.role), id: "role_#{user.id}" %>
+      <%= form.submit "Save role" %>
+    <% end %>
+    <%= button_to "Remove #{user.username}", admin_user_path(user), method: :delete, data: { turbo: false } %>
+  </section>
+<% end %>
+<h2>Add an account</h2>
+<%= form_with url: admin_users_path, data: { turbo: false } do |form| %>
+  <% [["username", "Username"], ["email", "Email"]].each do |field, label| %>
+    <%= label_tag "user_#{field}", label %>
+    <%= text_field_tag "user[#{field}]", nil, id: "user_#{field}", required: true, autocomplete: "off" %>
+  <% end %>
+  <%= label_tag "user_password", "Initial password (12+ characters, at most 72 bytes)" %>
+  <%= password_field_tag "user[password]", nil, id: "user_password", required: true, autocomplete: "new-password" %>
+  <%= label_tag "user_password_confirmation", "Confirm password" %>
+  <%= password_field_tag "user[password_confirmation]", nil, id: "user_password_confirmation", required: true, autocomplete: "new-password" %>
+  <%= label_tag "user_role", "Role" %>
+  <%= select_tag "user[role]", options_for_select(User::ROLES, "author"), id: "user_role" %>
+  <%= form.submit "Create account" %>
+<% end %>
+<%= link_to "Back to account home", admin_path %>

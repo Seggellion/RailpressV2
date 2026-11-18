@@ -1,0 +1,7 @@
+<h1>Export a content manifest</h1><%= link_to "Dashboard", admin_path %>
+<p>Downloads versioned JSON with selected content, taxonomy, media checksums and revision hashes. Image bytes are not packaged; download canonical images from the media library. Up to 500 records and 1000 revision hashes; 5 MiB JSON limit. This is not a full backup or an executable import.</p>
+<%= form_with url: admin_exports_path, data: { turbo: false } do %>
+  <label><%= check_box_tag :include_private, "1", false %> Include private working copies, drafts and their revision hashes</label>
+  <p>By default only currently published public snapshots are included. Accounts, credentials, sessions, reset tokens and storage keys are always excluded.</p>
+  <button>Download JSON manifest</button>
+<% end %>

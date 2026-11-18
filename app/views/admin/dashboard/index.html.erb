@@ -1,0 +1,90 @@
+<% content_for :title, "Dashboard · Railpress" %>
+<p class="eyebrow">Your workspace</p>
+<h1><%= @site.title %></h1>
+<p>Railpress <%= Railpress::Product::VERSION %> · <%= Railpress::Product::CHANNEL %> preview</p>
+<% if Identity::Capabilities.allowed?(current_user, :inspect_updates) %>
+  <% update_notice = Releases::Catalog.view %>
+  <% if update_notice["candidate"] %><p role="status"><%= link_to update_notice["notice"], admin_updates_path %></p><% end %>
+<% end %>
+<% if @dashboard.clock_held %><p role="status" class="notice"><strong>Automatic work is held.</strong> A local clock anomaly was observed. Scheduled publication and new official-news requests remain held until the operator verifies time. Existing published content remains available.</p><% end %>
+<p>Welcome, <%= current_user.username %>. <%= current_user.author? ? "Your content, media and activity are shown below." : "A current view of your publishing work." %></p>
+<% if @error %><p><%= link_to "Reload dashboard",admin_path %> before starting another submission.</p><% end %>
+<section aria-labelledby="dashboard-actions"><h2 id="dashboard-actions">Quick actions</h2>
+<div class="dashboard-actions">
+<%= link_to "New Page",new_admin_content_path(kind:"Page") %>
+<%= link_to "New Post",new_admin_content_path(kind:"Post") %>
+<%= link_to "Manage Media",admin_media_assets_path %>
+<% if Identity::Capabilities.allowed?(current_user,:manage_menus) %><%= link_to "Manage Menus",admin_menus_path %><% end %>
+<% if Identity::Capabilities.allowed?(current_user,:manage_themes) %><%= link_to "Customize Appearance",admin_customize_path %><% end %>
+<% if Identity::Capabilities.allowed?(current_user,:execute_seo) %><%= link_to "Inspect SEO",admin_seo_path %><% end %>
+<% if Identity::Capabilities.allowed?(current_user,:view_readiness) %><%= link_to "View Site Readiness",admin_readiness_path %><% end %>
+<% if Identity::Capabilities.allowed?(current_user,:inspect_updates) %><%= link_to "Review Updates",admin_updates_path %><% end %>
+</div></section>
+<section aria-labelledby="publishing-overview"><h2 id="publishing-overview">Publishing overview</h2>
+<div class="dashboard-grid">
+<% %w[Page Post].each do |kind| %><article class="dashboard-card">
+<h3><%= kind.pluralize %></h3>
+<p class="dashboard-metric"><%= @dashboard.public_count(kind) %> <span>published public <%= kind.downcase.pluralize %></span></p>
+<dl class="dashboard-facts"><% Content::STATES.each do |state| %><div><dt><%= state.humanize %></dt><dd><%= link_to @dashboard.count(kind,state),admin_contents_path(kind:kind,status:state) %></dd></div><% end %></dl>
+</article><% end %>
+<article class="dashboard-card"><h3>Media library</h3><p class="dashboard-metric"><%= @dashboard.media["ready"] %> <span>ready images in your scope</span></p>
+<p><%= number_to_human_size(@dashboard.media["bytes"]) %> of validated image data. <%= @dashboard.media["unavailable"] %> unavailable or purged records.</p>
+<p>Recorded image sizes are not a hosting quota or backup guarantee.</p></article>
+</div></section>
+<div class="dashboard-grid">
+<section class="dashboard-card" aria-labelledby="quick-draft"><h2 id="quick-draft">Quick Draft</h2>
+<p>Save a private working copy, then review it in the full editor.</p>
+<%= form_with url:admin_quick_draft_path,scope: :draft do |form| %>
+<%= form.hidden_field :request_key,value:@draft_key %><%= form.hidden_field :version,value:0 %>
+<%= form.label :kind,"Content type" %><%= form.select :kind,[["Post","Post"],["Page","Page"]],selected:params.dig(:draft,:kind) %>
+<%= form.label :title,"Title" %><%= form.text_field :title,required:true,maxlength:200,value:params.dig(:draft,:title) %>
+<%= form.label :body,"Draft text" %><%= form.text_area :body,rows:5,maxlength:200000,value:params.dig(:draft,:body) %>
+<%= form.submit "Save private draft" %><% end %>
+</section>
+<section class="dashboard-card"><h2>Work requiring attention</h2>
+<% if @drafts.empty? %><p>No drafts, review requests or scheduled work in your scope. Start with a new Page or Post.</p><% end %>
+<ul class="content-list"><% @drafts.each do |item| %><li><%= link_to item.title,edit_admin_content_path(item) %> <span class="state-pill"><%= item.status %></span><%= " · review requested" if item.pending_review? %>
+<% if item.scheduled_at && item.status=="scheduled" %><span> · scheduled <%= item.scheduled_at.iso8601 %> (subject to the security-clock hold)</span><% end %>
+</li><% end %></ul>
+</section>
+<section class="dashboard-card"><h2>Recent changes</h2>
+<% if @activity.empty? %><p>No visible activity yet.</p><% end %>
+<ul><% @activity.each do |event| %><li><%= event.action.humanize %> · <%= event.actor_name %> · <%= event.created_at.iso8601 %></li><% end %></ul>
+<p><%= link_to "View activity",admin_activity_path %></p></section>
+</div>
+<% if (ops=@dashboard.operations) %><section aria-labelledby="operating-health"><h2 id="operating-health">Operating health</h2>
+<p>Local observations describe their scope. Missing or stale evidence is never proof of availability.</p>
+<div class="dashboard-grid">
+<article class="dashboard-card"><h3>Appearance and navigation</h3><p>Selected theme: <%= ops["theme"] || "UNKNOWN · no active package" %>; customization overlay <%= ops["overlay"] || "UNKNOWN" %>.</p>
+<p>Core administration remains available if a public theme fails.</p><p><%= ops["navigation_assigned"] || 0 %> assigned public menu locations.</p>
+<p><strong><%= ops.dig("navigation_condition","state") %></strong> · <%= ops.dig("navigation_condition","detail") %></p></article>
+<article class="dashboard-card"><h3>Search and canonical policy</h3><p>Canonical origin: <%= @site.canonical_origin %>.</p>
+<p>Search visibility: <%= @site.indexing_enabled? && ENV["RAILPRESS_SEO_INDEXING"]!="disabled" ? "enabled by local policy" : "disabled" %>. This does not establish search-engine indexing.</p>
+<p><strong><%= ops.dig("seo","state") %></strong> · <%= ops.dig("seo","detail") %></p></article>
+<article class="dashboard-card"><h3>Worker and queued work</h3><p><strong><%= ops["worker"] %></strong><%= " · observed #{ops["worker_at"].iso8601}" if ops["worker_at"] %>.</p>
+<p><%= ops["pending"] || "UNKNOWN" %> pending queue records; <%= ops["failed"] || "UNKNOWN" %> failed records. No job arguments are exposed.</p><p>A recent heartbeat does not guarantee future processing.</p></article>
+<article class="dashboard-card"><h3>Storage</h3>
+<% if ops["storage"].empty? %><p>UNKNOWN · no current saved storage/capacity evidence. Request Site Readiness; dashboard requests do not write test objects.</p><% end %>
+<% ops["storage"].each do |finding| %><p><strong><%= finding["state"] %></strong> · <%= finding["detail"] %></p><% end %></article>
+<article class="dashboard-card"><h3>Site Readiness</h3><p><strong><%= ops["readiness_state"] %></strong><%= " · #{ops["readiness_observed_at"].iso8601}" if ops["readiness_observed_at"] %>.</p>
+<% issues=ops["findings"].reject{|f|f["state"]=="HEALTHY"}.first(6) %>
+<% if issues.empty? %><p>No current outstanding findings are available here. Open the complete assessment before drawing operational conclusions.</p><% end %>
+<ul><% issues.each do |f| %><li><strong><%= f["state"] %></strong> · <%= f["key"].humanize %>: <%= f["detail"] %></li><% end %></ul>
+<%= link_to "Open Site Readiness",admin_readiness_path %></article>
+<article class="dashboard-card"><h3>Railpress version and updates</h3><p>Running <strong><%= Railpress::Product::VERSION %></strong> · <%= Railpress::Product::CHANNEL %>.</p>
+<% if Identity::Capabilities.allowed?(current_user,:inspect_updates) %>
+<% observation=ops["release"] %>
+<p><strong><%= observation && observation["verified"] && observation["fresh"] ? "VERIFIED OBSERVATION" : "UNKNOWN / STALE" %></strong> · native status is last confirmed, not a substitute for running-code identity.</p>
+<% if observation && observation["verified"] %><p>Last confirmed version <%= observation.dig("statement","active_version") || "UNKNOWN" %>; generation <%= observation.dig("statement","generation") %>.</p><% end %>
+<%= link_to "Review Updates",admin_updates_path %>
+<% else %><p>Release verification and native operator details are restricted to the Owner.</p><% end %>
+<p>Production hosting, independent UTC and production backup guarantees remain unqualified.</p></article>
+</div></section><% end %>
+<section class="dashboard-card" aria-labelledby="official-news"><h2 id="official-news">Official Railpress news</h2>
+<p><strong><%= @dashboard.news["state"] %></strong> · <%= @dashboard.news["detail"] %></p>
+<% if @dashboard.news["retrieved_at"] %><p>Last retrieved <%= @dashboard.news["retrieved_at"].iso8601 %>. This timestamp is an observation, not independent UTC proof.</p><% end %>
+<% if @dashboard.news["last_error"] %><p>Latest refresh failed; last-good metadata is retained within its documented limit.</p><% end %>
+<ul><% @dashboard.news["items"].each do |item| %><li><h3><%= link_to item["title"],item["url"],rel:"noopener noreferrer",referrerpolicy:"no-referrer" %></h3><p><%= item["excerpt"] %></p></li><% end %></ul>
+<% if @dashboard.news["items"].empty? %><p>No official articles are currently available in this local view. Your site is fully usable without them.</p><% end %>
+<% if Identity::Capabilities.allowed?(current_user,:manage_identity) %><%= link_to "Official news preferences and privacy",admin_official_news_path %><% end %>
+</section>

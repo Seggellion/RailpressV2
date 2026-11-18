@@ -1,0 +1,101 @@
+<% content_for :title, "Updates" %>
+<h1>Updates</h1>
+<section class="admin-card" aria-labelledby="public-release-checks">
+  <h2 id="public-release-checks">GitHub release checks</h2>
+  <p>Optional background requests to the public Seggellion/RailpressV2 release API disclose this server's IP and Railpress version to GitHub. No account, token, site identity or content is sent. GitHub connectivity is not required for publishing.</p>
+  <%= form_with url: admin_updates_checks_path do |form| %>
+    <%= form.label :enabled, "Check public releases" %><%= form.check_box :enabled, checked: @check_settings["enabled"] %>
+    <%= form.label :channel, "Release channel" %><%= form.select :channel, [["Alpha previews and stable", "alpha"], ["Stable only", "stable"]], selected: @check_settings["channel"] %>
+    <%= form.submit "Save release check preference" %>
+  <% end %>
+  <p role="status"><strong><%= @catalog["notice"] %></strong> · <%= @catalog["state"] %></p>
+  <p><%= @catalog["detail"] %></p>
+  <% if (candidate = @catalog["candidate"]) %>
+    <p>Latest signed candidate: <%= candidate["version"] %> · <%= candidate["manifest"]["channel"] %>. Installation still requires independent UTC and package/host verification.</p>
+    <h3>Changelog and compatibility notices</h3><p><%= candidate["manifest"]["changelog"] %></p>
+    <p>Theme API requirement: <%= candidate["manifest"]["compatibility"]["theme_api"] %>. Compatible bundled theme versions: <%= candidate["manifest"]["compatibility"]["themes"].map { |theme| "#{theme['id']} #{theme['version']}" }.join(", ") %>.</p>
+    <% if @combined_supported && @catalog["compatible"] %>
+      <%= form_with url: admin_updates_combined_path do |form| %>
+        <%= form.hidden_field :release_id, value: candidate["release_id"] %><%= form.hidden_field :request_id, value: SecureRandom.uuid %>
+        <%= form.label :theme_id, "Theme selection (preview a staged compatible version in Appearance first)" %>
+        <%= form.select :theme_id, [["Preserve active theme and customization", ""]] + @theme_choices.map { |theme| ["#{theme.theme_key} #{theme.version}", theme.id] } %>
+        <%= form.submit "Update Railpress and Theme" %>
+      <% end %>
+    <% else %>
+      <p><strong>Update blocked by host or backup requirements.</strong> One-button activation is unsupported without a fresh attested combined operator, recovery point and trusted-time admission. Use the documented native operator procedure.</p>
+    <% end %>
+    <% if @theme_choices.any? %><p role="status">Core and theme updates available. Selected themes require this Core candidate and Theme API <%= candidate["manifest"]["compatibility"]["theme_api"] %>.</p><% end %>
+  <% end %>
+</section>
+<p>Installed Railpress <strong><%= Railpress::Product::VERSION %></strong> · <%= Railpress::Product::CHANNEL %> channel. This identity comes from running code.</p>
+<p>Rails <%= Rails.version %> · Ruby <%= RUBY_VERSION %> · Theme API <%= Railpress::Product::THEME_API %> · Security-clock contract <%= Railpress::Product::SECURITY_CLOCK %>.</p>
+<p>Active theme: <%= @theme ? "#{@theme.theme_key} #{@theme.version} · #{@theme.digest}" : "No validated package selected" %>. Staging preserves installed themes, overlays, menus and persistent media.</p>
+<% if @local_theme_updates.any? %>
+  <p role="status"><strong>Theme update available.</strong> Locally staged trusted packages: <%= @local_theme_updates.map { |theme| "#{theme.theme_key} #{theme.version}" }.join(", ") %>. Requires Core Theme API <%= Railpress::Product::THEME_API %>, provided by installed Railpress <%= Railpress::Product::VERSION %>. Preview and approve in <%= link_to "Appearance", admin_themes_path %>; no remote third-party availability is inferred.</p>
+<% else %>
+  <p>Active theme update availability: no newer locally staged compatible package. Remote third-party theme availability is UNKNOWN.</p>
+<% end %>
+<% if @theme_review_required %><p role="status">Theme update requires compatibility review. A staged package could not be verified; inspect Appearance before selecting it.</p><% end %>
+<%= render "native_host" if @host_status %>
+<section class="admin-card" aria-labelledby="release-capabilities">
+  <h2 id="release-capabilities">Native update capabilities</h2>
+  <p>Inspect, stage and cancel are bounded requests to a separate native operator. No host command runs in this web process. Optional GitHub checks retrieve signed metadata; packages enter the local inbox only through the explicitly provisioned operator.</p>
+  <% if @host_status && @host_status["verified"] %>
+    <p>Only displayed isolated host requests are supported. Scheduling, production activation and automatic database restore are unavailable. No host action executes in this web process.</p>
+  <% else %>
+    <p><strong>UNSUPPORTED in M11:</strong> activation, scheduling, schema expansion, service replacement and revert. No running-release change is available.</p>
+  <% end %>
+  <p>Production backup readiness: UNKNOWN until separately qualified. UTC qualification: UNKNOWN until an independent trusted time authority supplies a fresh challenge-bound receipt. A signature alone does not authorize staging.</p>
+  <% unless @configured %>
+    <p role="status">Operator unavailable. Ask the operator to provision an isolated native staging profile and a public trust document. Login, editing, publishing and public rendering work independently.</p>
+  <% end %>
+</section>
+<% if @configured %>
+  <section class="admin-card" aria-labelledby="release-request">
+    <h2 id="release-request">Request an operator action</h2>
+    <p>Use the 64-character release identity supplied by your trusted native operator. Requests are not proof that staging succeeded.</p>
+    <%= form_with url: admin_updates_stage_path do |form| %>
+      <%= form.hidden_field :request_id, value: SecureRandom.uuid %>
+      <%= form.label :release_id, "Release identity (SHA256)" %>
+      <%= form.text_field :release_id, required: true, maxlength: 64, pattern: "[0-9a-f]{64}", autocomplete: "off" %>
+      <%= form.label :operation, "Operation" %>
+      <% choices = [["Inspect signed metadata", "inspect"], ["Stage isolated release", "stage"], ["Cancel and retain staged evidence", "cancel"]] %>
+      <% [["Check native compatibility", "preflight"], ["Request isolated promotion", "promote"], ["Request compatible code revert", "revert"]].each { |label, operation| choices << [label, operation] if @host_operations.include?(operation) } %>
+      <%= form.select :operation, choices %>
+      <%= form.submit "Queue operator request" %>
+    <% end %>
+  </section>
+<% end %>
+<section class="admin-card" aria-labelledby="release-history">
+  <h2 id="release-history">Release requests and journal receipts</h2>
+  <% if @requests.empty? %><p>No update requests. No release has been staged or activated.</p><% end %>
+  <% @requests.each do |request| %>
+    <% receipt = ::Releases::Requests.receipt_for(request) %>
+    <% combined_result = ::Releases::Combined.result(request) %>
+    <article class="admin-card">
+      <h3><%= request.operation.capitalize %> · <%= request.request_key %></h3>
+      <p>Release <code><%= request.release_digest %></code></p>
+      <% if combined_result %><p role="status">Combined update: <strong><%= combined_result["state"] %></strong>. <%= combined_result["error"] %> No automatic database restore.</p><% end %>
+      <p>Request recorded <%= request.created_at.iso8601 %> (host clock; not independent UTC proof).</p>
+      <% if receipt %>
+        <p>Status: <strong><%= receipt["state"] %></strong> · receipt revision <%= request.receipt_revision %>. Last reported operator state; installed version is shown separately above.</p>
+        <% if receipt["error"] %><p role="status"><%= release_failure_message(receipt["error"]) %> (<code><%= receipt["error"] %></code>)</p><% end %>
+        <% if receipt["state"] != "UNVERIFIED" %>
+          <p>Operator signature verified with the configured public trust policy. Publisher: <%= receipt["publisher"] || "Not verified" %>.</p>
+          <% metadata = receipt["metadata"] || {} %>
+          <p>Candidate <%= metadata["version"] %> · <%= metadata["channel"] %> · publisher-declared publication <%= release_timestamp(metadata["published_at"]) %> · expiry <%= release_timestamp(metadata["expires_at"]) %>.</p>
+          <details><summary>Native staging progress and journal history</summary>
+            <ol><% Array(receipt["history"]).each do |event| %><li><%= event["phase"] || event["state"] %><% if event["detail"] %> · <%= event["detail"] %><% end %></li><% end %></ol>
+            <p>These are signed operator observations. Reload to see later receipts while an operation runs.</p>
+          </details>
+          <h4>Changelog</h4><p><%= metadata["changelog"] %></p>
+          <h4>Compatibility and continuity</h4>
+          <p><%= receipt["state"] == "STAGED" ? (@host_status && @host_status["verified"] ? "Isolated staging verified. A host action still requires its own request, native approval and compatibility checks." : "Native staging compatibility and file verification passed. Activation remains unsupported.") : "Read the verified operation status and compatibility requirements. A queued request is not host authorization." %></p>
+          <details><summary>Runtime and compatibility requirements</summary><pre><%= JSON.pretty_generate(metadata["compatibility"] || {}) %></pre></details>
+        <% end %>
+      <% else %>
+        <p>QUEUED · waiting for the separate operator. No verified host result is available.</p>
+      <% end %>
+    </article>
+  <% end %>
+</section>

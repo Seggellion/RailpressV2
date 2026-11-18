@@ -1,0 +1,20 @@
+<%
+tree = lambda do |items|
+  safe_join(items.map do |item|
+    tag.li do
+      if item.children.any?
+        tag.details(data: { disclosure: true }, class: "dusk-submenu") do
+          safe_join([tag.summary(item.label), tag.ul(class: "dusk-sub-list") { safe_join([tag.li { link_to("Overview: #{item.label}", item.url) }, tree.call(item.children)]) }])
+        end
+      else
+        link_to(item.label, item.url)
+      end
+    end
+  end)
+end
+%>
+<header class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %> dusk-header dusk-header-<%= theme.options.fetch("header_style", "standard") %>" data-theme="dusk">
+<div class="dusk-wrap dusk-header-inner"><a class="dusk-brand" href="<%= theme.site.home_url %>"><% if theme.options["logo_url"] %><img src="<%= theme.options["logo_url"] %>" alt="<%= theme.options["logo_alt"] %>" width="48" height="48"><% else %><span class="dusk-mark" aria-hidden="true"></span><% end %><span><%= theme.options["brand_label"].to_s.empty? ? theme.site.title : theme.options["brand_label"] %></span></a>
+<% if theme.navigation.primary.any? %><nav class="dusk-desktop-nav" aria-label="Primary"><ul class="dusk-root-list"><%= tree.call(theme.navigation.primary) %></ul></nav><% end %>
+<% if theme.navigation.mobile.any? %><details class="dusk-mobile-nav" data-disclosure="true"><summary class="dusk-menu-toggle">Menu<span aria-hidden="true"> +</span></summary><nav class="dusk-mobile-panel" aria-label="Mobile"><ul><%= tree.call(theme.navigation.mobile) %></ul></nav></details><% end %>
+</div></header>

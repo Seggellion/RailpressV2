@@ -1,0 +1,13 @@
+<% content_for :title, "Navigation · Railpress" %>
+<div class="menu-page">
+<p class="eyebrow">Site navigation</p><h1>Menus that guide your visitors.</h1>
+<p>Create a menu once, then assign it to the locations declared by any trusted theme. Draft changes stay private until you publish.</p>
+<p><%= link_to "Back to your site tools", admin_path %> · <%= link_to "View public site", root_path %></p>
+<section class="menu-card"><h2>Create a menu</h2>
+<%= form_with url: admin_menus_path, data: { turbo: false } do |form| %>
+<%= hidden_field_tag :state_version, @state_version, id: nil %><%= label_tag :name, "Menu name" %><%= text_field_tag :name, nil, required: true, maxlength: 100, placeholder: "For example, Main navigation" %><%= form.button "Create menu" %>
+<% end %></section>
+<section><h2>Your menus</h2>
+<% if @menus.empty? %><div class="menu-empty"><h3>A clear path starts here.</h3><p>Your first menu can include published pages, stories, topics and secure custom links.</p></div><% end %>
+<ul class="menu-catalog"><% @menus.each do |menu| %><li><%= link_to menu.name, edit_admin_menu_path(menu) %><span><%= menu.status == "deleted" ? "Withdrawn" : (menu.published_revision_id ? "Published + editable draft" : "Draft only") %> · revision <%= menu.lock_version %></span></li><% end %></ul>
+</section></div>

@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require "bundler/setup"
+require_relative "../lib/railpress/test_database"
+root = File.expand_path("..", __dir__)
+Dir.chdir(root)
+engine = ARGV.shift
+unless ARGV.shift == "--confirm-synthetic"
+  abort "Usage: bin/native_test postgresql|mysql2 --confirm-synthetic [rails arguments]"
+end
+begin
+  confirmation = "railpress-synthetic-only"
+  config = Railpress::TestDatabase.load!(root: root, engine: engine, confirmed: confirmation)
+  identity = Railpress::TestDatabase.verify!(config, confirmed: confirmation)
+  puts "VERIFIED SYNTHETIC TEST TARGET: #{JSON.generate(identity)}; password=[REDACTED]; media/cache/mail isolated"
+  $stdout.flush
+  abort "REFUSED: environment override arguments prohibited" if ARGV.any? { |arg| arg.include?("RAILS_ENV") || arg.start_with?("--environment", "-e") }
+  environment = {
+    "RAILS_ENV" => "test", "RAILPRESS_TEST_CONFIRM" => confirmation,
+    "RAILPRESS_TEST_ENGINE" => engine, "PARALLEL_WORKERS" => "1"
+  }
+  exec environment, File.join(root, "bin/rails"), *(ARGV.empty? ? ["test"] : ARGV)
+rescue Railpress::TestDatabase::UnsafeTarget => error
+  abort "REFUSED: #{error.message}"
+end

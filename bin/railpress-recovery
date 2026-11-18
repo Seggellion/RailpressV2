@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require_relative "../lib/railpress/recovery"
+
+begin
+  command, config_path, manifest_path, dump, trusted_digest = ARGV
+  abort "Usage: bin/railpress-recovery backup|validate|restore PRIVATE_CONFIG MANIFEST DUMP [TRUSTED_MANIFEST_SHA256]" unless
+    %w[backup validate restore].include?(command) && ARGV.length == (command == "backup" ? 4 : 5)
+  recovery = Railpress::Recovery
+  config = Railpress::Releases.parse(recovery.private_file(config_path, maximum: 65_536), limit: 65_536)
+  Railpress::Releases.keys!(config, %w[format registry_root engine source_profile target_profile root db_tools install_id application_root configuration_files theme_root source_clock_root])
+  raise recovery::Error, "recovery_config" unless config["format"] == "railpress.fresh-recovery-config.v1" && config["source_profile"] == "gcs_source" && %w[gcs_good gcs_bad].include?(config["target_profile"])
+  common = config.slice("registry_root", "engine", "db_tools", "install_id").transform_keys(&:to_sym)
+  source = recovery::Target.new(**common, profile: config["source_profile"], root: File.join(config["root"], "source"))
+  target = recovery::Target.new(**common, profile: config["target_profile"], root: File.join(config["root"], "target"))
+  if command == "backup"
+    manifest = recovery::Manifest.capture!(database: source.database, dump: dump, output: manifest_path,
+      app_root: config["application_root"], configuration_files: config["configuration_files"], theme_root: config["theme_root"],
+      clock: Railpress::SecurityClock.new(config["source_clock_root"]), freeze_confirmed: "writers-stopped-no-ddl")
+    puts JSON.generate(status: "CAPTURED_NOT_RESTORED", id: manifest["id"], manifest_sha256: recovery.sha(manifest_path), provider: "NOT ATTESTED")
+  else
+    manifest = recovery::Manifest.load(manifest_path, trusted_sha256: trusted_digest)
+    store = Railpress::Gcs::Store.new(bucket: ENV.fetch("RAILPRESS_GCS_BUCKET"), project: ENV.fetch("RAILPRESS_GCS_PROJECT"), credentials: ENV["RAILPRESS_GCS_CREDENTIALS_FILE"])
+    validator = recovery::Validator.new(manifest: manifest, dump: dump, app_root: config["application_root"],
+      configuration_files: config["configuration_files"], theme_root: config["theme_root"], store: store)
+    if command == "validate"
+      puts JSON.pretty_generate(validator.run(database: target.database))
+    else
+      receipt = recovery::Fresh.new(source: source, target: target, manifest: manifest, dump: dump, validator: validator,
+        clock_root: target.path("candidate-private"), app_root: config["application_root"], configuration_files: config["configuration_files"], theme_root: config["theme_root"]).run!
+      puts JSON.pretty_generate(receipt)
+    end
+  end
+rescue StandardError => error
+  code = error.is_a?(Railpress::NativeHost::Error) && error.message.match?(/\A[a-z_]{1,100}\z/) ? error.message : "recovery_unavailable"
+  warn JSON.generate(status: "FAILED", code: code, guidance: "Preserve candidate and private receipts; no cutover or automatic retry.")
+  exit 1
+end

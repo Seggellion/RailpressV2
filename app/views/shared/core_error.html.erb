@@ -1,0 +1,6 @@
+<% content_for :title, "Request stopped safely · Railpress" %>
+<p class="eyebrow">Core protection · <%= http_status %></p>
+<h1>Request stopped safely</h1>
+<p role="alert" class="error"><%= message %></p>
+<p class="hint">The safety check remains in effect. Follow the guidance above before trying again.</p>
+<p><%= link_to "Return to sign in", login_path %></p>

@@ -1,0 +1,209 @@
+/* Core-owned protected surfaces. Public themes never opt into body.core. */
+body.core {
+  color-scheme: dark;
+  --core-background: #101419;
+  --core-surface: #181e25;
+  --core-elevated: #222b35;
+  --core-hover: #2b3847;
+  --core-border: #465668;
+  --core-control-border: #7c8fa4;
+  --core-text: #eef2f6;
+  --core-muted: #b8c4d1;
+  --core-link: #a8d8ff;
+  --core-control: #111820;
+  --core-action: #b9dbff;
+  --core-action-text: #10243a;
+  --core-action-hover: #d3e8ff;
+  --core-focus: #ffd166;
+  --core-positive: #b9f1cf;
+  --core-positive-surface: #173c30;
+  --core-positive-border: #68b990;
+  --core-warning: #ffe2a4;
+  --core-warning-surface: #45331a;
+  --core-warning-border: #d9a441;
+  --core-danger: #ffd0d7;
+  --core-danger-surface: #43242b;
+  --core-danger-border: #ff8d9d;
+  --core-disabled: #aab6c5;
+  --core-disabled-surface: #29323e;
+  background: var(--core-background);
+  color: var(--core-text);
+  accent-color: var(--core-action);
+}
+
+.core .core-panel,
+.core .admin-sidebar,
+.core .admin-card,
+.core .dashboard-card,
+.core .menu-card,
+.core .theme-card,
+.core .overlay-card,
+.core .readiness-grid > div {
+  background: var(--core-surface);
+  color: var(--core-text);
+  border-color: var(--core-border);
+  box-shadow: none;
+}
+.core.admin-shell { background: var(--core-background); color: var(--core-text); }
+.core .admin-topbar { background: var(--core-surface); border-color: var(--core-border); }
+.core .core-header, .core .core-footer, .core .admin-footer { color: var(--core-muted); }
+.core .brand, .core .admin-topbar .brand { color: var(--core-text); }
+.core .brand { display: inline-flex; align-items: center; gap: .7rem; }
+.core .brand-mark { width: 2rem; height: 2rem; flex: 0 0 auto; }
+.core .admin-sidebar-brand { margin: .25rem .8rem .75rem; font-weight: 700; text-decoration: none; }
+.core .admin-toggle .brand-mark { width: 1.5rem; height: 1.5rem; margin-inline-end: .5rem; vertical-align: middle; }
+.core .hint, .core .eyebrow, .core .setup-lead, .core .setup-checks p,
+.core .core-header > span:last-child, .core .admin-topbar > span,
+.core .admin-sidebar-note, .core .admin-meta, .core .menu-type,
+.core .menu-page small, .core .menu-catalog span { color: var(--core-muted); }
+.core a { color: var(--core-link); }
+.core a:hover { color: var(--core-text); text-decoration-thickness: .15em; }
+.core a:visited { color: var(--core-link); }
+.core .admin-nav a, .core .admin-nav summary { color: var(--core-text); }
+.core .admin-nav a:hover, .core .admin-nav summary:hover { background: var(--core-hover); }
+.core .admin-nav a[aria-current=page] {
+  background: var(--core-hover);
+  border-inline-start-color: var(--core-action);
+  color: var(--core-text);
+}
+.core .admin-ancestor > .admin-nav-group > summary { color: var(--core-link); }
+.core .admin-toggle { background: var(--core-elevated); color: var(--core-text); border: 1px solid var(--core-control-border); }
+.core :focus-visible,
+.core .admin-nav a:focus-visible,
+.core .admin-nav summary:focus-visible,
+.core .admin-toggle:focus-visible,
+.core .core-panel:focus,
+.core #visual_editor:focus {
+  outline: 3px solid var(--core-focus);
+  outline-offset: 3px;
+}
+.core a.skip-link, .core a.skip-link:visited, .core a.skip-link:hover { background: var(--core-focus); color: var(--core-background); z-index: 20; }
+.core input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=hidden]),
+.core select, .core textarea {
+  background: var(--core-control);
+  color: var(--core-text);
+  border-color: var(--core-control-border);
+}
+.core input::placeholder, .core textarea::placeholder { color: var(--core-muted); opacity: 1; }
+.core input[type=checkbox], .core input[type=radio] { accent-color: var(--core-action); }
+.core input[type=submit], .core button, .core input::file-selector-button {
+  background: var(--core-action);
+  color: var(--core-action-text);
+  border: 1px solid transparent;
+  min-height: 44px;
+}
+.core input[type=submit]:hover, .core button:hover, .core input::file-selector-button:hover {
+  background: var(--core-action-hover);
+  color: var(--core-action-text);
+}
+.core button:disabled, .core input:disabled, .core select:disabled,
+.core textarea:disabled, .core [aria-disabled=true] {
+  background: var(--core-disabled-surface);
+  color: var(--core-disabled);
+  border-color: var(--core-control-border);
+  opacity: 1;
+  cursor: not-allowed;
+}
+.core input[readonly], .core textarea[readonly] { background: var(--core-elevated); }
+.core input[aria-invalid=true], .core select[aria-invalid=true], .core textarea[aria-invalid=true] {
+  border-color: var(--core-danger-border);
+}
+.core fieldset, .core details, .core .account, .core .admin-sidebar-note,
+.core .readiness-row, .core .admin-list > li, .core .activity-list > li,
+.core .dashboard-facts > div, .core .content-list li, .core .menu-catalog li,
+.core .menu-sources details, .core .setup-checks li, .core .setup-summary {
+  border-color: var(--core-border);
+}
+.core .notice, .core .state-healthy, .core .menu-publish {
+  background: var(--core-positive-surface);
+  color: var(--core-positive);
+  border-color: var(--core-positive-border);
+}
+.core .error {
+  background: var(--core-danger-surface);
+  color: var(--core-danger);
+  border-color: var(--core-danger-border);
+}
+.core .state-degraded, .core .state-action_required, .core .menu-conflict,
+.core #admin-session-message {
+  background: var(--core-warning-surface);
+  color: var(--core-warning);
+  border-color: var(--core-warning-border);
+}
+.core .notice a, .core .error a, .core .menu-conflict a,
+.core .state-degraded a, .core .state-action_required a { color: inherit; text-decoration: underline; }
+.core .state-unknown, .core .state-unsupported, .core .state-pill {
+  background: var(--core-elevated);
+  color: var(--core-text);
+  border-color: var(--core-control-border);
+}
+.core .dashboard-metric { color: var(--core-text); }
+.core .dashboard-actions > a { border-color: var(--core-control-border); }
+.core .dashboard-card:focus-within { border-color: var(--core-focus); }
+.core .native-host-card { border-inline-start-color: var(--core-action); }
+.core .setup-note, .core .setup-steps span, .core .editor-grid aside,
+.core .menu-node, .core .menu-empty, .core .media-unavailable,
+.core .content-hero, .core .content-call_to_action {
+  background: var(--core-elevated);
+  color: var(--core-text);
+  border-color: var(--core-border);
+}
+.core .setup-steps a, .core .setup-steps span { border-color: var(--core-control-border); }
+.core .setup-steps [aria-current=step] { background: var(--core-action); color: var(--core-action-text); }
+.core #visual_editor {
+  background: var(--core-control);
+  color: var(--core-text);
+  border-color: var(--core-control-border);
+  caret-color: var(--core-text);
+}
+.core #visual_editor a { color: var(--core-link); }
+.core pre, .core code, .core kbd, .core samp {
+  background: var(--core-control);
+  color: var(--core-text);
+}
+.core pre { border: 1px solid var(--core-border); border-radius: .4rem; }
+.core code { padding: .1em .25em; border-radius: .2rem; }
+.core pre code { padding: 0; }
+.core blockquote { border-inline-start: 3px solid var(--core-control-border); padding-inline-start: 1rem; color: var(--core-muted); }
+.core mark { background: var(--core-focus); color: var(--core-background); }
+.core hr { border: 0; border-top: 1px solid var(--core-border); }
+.core table { border-collapse: collapse; max-width: 100%; }
+.core th, .core td { padding: .6rem; border-bottom: 1px solid var(--core-border); text-align: start; }
+.core th { background: var(--core-elevated); }
+.core .media-grid article, .core .content-block { border-color: var(--core-border); }
+.core .menu-node { border-inline-start-color: var(--core-control-border); }
+.core .menu-moves button { background: var(--core-control); color: var(--core-link); border-color: var(--core-control-border); }
+.core .menu-moves button:hover { background: var(--core-hover); color: var(--core-text); }
+.core .menu-drop { outline-color: var(--core-focus); }
+.core .menu-dragging .menu-drop-inside {
+  background: var(--core-control);
+  color: var(--core-text);
+  border-color: var(--core-control-border);
+}
+.core .menu-dragging .menu-drop-inside:hover { background: var(--core-hover); }
+.core ::selection { background: var(--core-action); color: var(--core-action-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .core *, .core *::before, .core *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .core :focus-visible { outline-color: Highlight; }
+  .core input, .core select, .core textarea, .core button { border-color: ButtonText; }
+  .core .admin-nav a[aria-current=page] { border-inline-start-color: Highlight; }
+}
+@media print {
+  body.core { color-scheme: light; background: white; color: black; }
+  .core .core-panel, .core .admin-card, .core .dashboard-card, .core .menu-card,
+  .core .theme-card, .core .overlay-card, .core fieldset, .core .setup-note,
+  .core .editor-grid aside, .core pre, .core code, .core .notice, .core .error {
+    background: white; color: black; border-color: #555;
+  }
+  .core input, .core textarea, .core select, .core #visual_editor,
+  .core .menu-node, .core .menu-conflict, .core .setup-steps span {
+    background: white; color: black; border-color: #555;
+  }
+  .core .admin-navigation, .core .admin-top-actions, .core button,
+  .core input[type=submit], .core .skip-link { display: none; }
+  .core .admin-layout { display: block; }
+  .core a, .core .hint, .core .eyebrow, .core .admin-meta { color: black; }
+}

@@ -1,0 +1,7 @@
+<h1><%= @kind == "tag" ? "Tags" : "Categories" %></h1><%= link_to "Content", admin_contents_path %>
+<ul><% @terms.each do |term| %><li><%= term.name %> · <%= term.taxonomy.kind %> · /<%= term.slug %></li><% end %></ul>
+<%= form_with url: admin_terms_path, data: { turbo: false } do %>
+  <%= label_tag :kind, "Type" %><%= select_tag :kind, options_for_select([["Category","category"],["Tag","tag"]], @kind) %>
+  <%= label_tag :name, "Name" %><%= text_field_tag :name, nil, required: true, maxlength: 100 %>
+  <%= label_tag :slug, "Slug (optional)" %><%= text_field_tag :slug, nil, maxlength: 160 %><button>Create term</button>
+<% end %>

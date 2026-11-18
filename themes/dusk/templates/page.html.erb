@@ -1,0 +1,16 @@
+<%
+tree = lambda do |items|
+  safe_join(items.map do |item|
+    tag.li do
+      if item.children.any?
+        tag.details(data: { disclosure: true }, class: "dusk-submenu") do
+          safe_join([tag.summary(item.label), tag.ul(class: "dusk-sub-list") { safe_join([tag.li { link_to("Overview: #{item.label}", item.url) }, tree.call(item.children)]) }])
+        end
+      else
+        link_to(item.label, item.url)
+      end
+    end
+  end)
+end
+%>
+<div class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="page"><article class="dusk-wrap dusk-article"><header class="dusk-article-heading"><p class="dusk-kicker"><%= theme.site.title %></p><h1><%= theme.content.title %></h1><p class="dusk-lede"><%= theme.content.excerpt %></p></header><%= theme_component "media" %><% if theme.navigation.documentation.any? %><nav class="dusk-docs" aria-label="Documentation"><p class="dusk-kicker">In this guide</p><ul><%= tree.call(theme.navigation.documentation) %></ul></nav><% end %><div class="dusk-prose"><%= theme.content.body_html %><%= theme.content.blocks_html %></div></article></div>

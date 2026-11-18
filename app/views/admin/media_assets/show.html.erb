@@ -1,0 +1,10 @@
+<h1><%= @asset.title %></h1><%= link_to "Media library", admin_media_assets_path %>
+<p><%= @asset.state %> · uploaded by <%= @asset.author.username %> · source <%= @asset.source_width %> × <%= @asset.source_height %>; display <%= @asset.width %> × <%= @asset.height %></p>
+<% if @asset.state == "ready" %><%= image_tag private_media_file_path(@asset, variant: "thumb"), alt: @asset.decorative? ? "" : @asset.alt_text, class: "media-preview" %>
+<p><%= link_to "Download canonical PNG", private_media_file_path(@asset, download: "1") %></p>
+<%= form_with url: admin_media_asset_path(@asset), method: :patch, data: { turbo: false } do %>
+  <%= hidden_field_tag :version, @asset.lock_version, id: nil %><%= render "metadata", asset: @asset %><button>Save image metadata</button>
+<% end %><% end %>
+<h2>Retained references</h2><p><%= @asset.media_references.count %> references across working content, live snapshots, revisions and previews.</p>
+<p>Retained history protects its images. Removing an image from a current page does not remove older revision references.</p>
+<% unless @asset.state == "purged" %><%= button_to "Permanently purge unused media", admin_media_asset_path(@asset), method: :delete, data: { turbo: false } %><% end %>

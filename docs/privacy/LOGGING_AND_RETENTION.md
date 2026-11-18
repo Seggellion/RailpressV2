@@ -1,0 +1,9 @@
+# Logging, retention and operator inspection
+
+The new application default is `RAILS_LOG_LEVEL=warn`; explicit host overrides still apply. Search query keys join existing auth/code/state/token filters. This reduces routine Rails request/parameter logging; it does not disable Puma/reverse-proxy/CDN/OS/provider logs or make error strings/content automatically anonymous. Never enable raw OAuth/SMTP/body/cookie/credential debug capture on a public deployment.
+
+Before launch, inspect actual front-end and backend logs, forwarded-IP trust, referrer/user-agent/query capture, rotation/access/backup/export and deletion schedules. Retain only fields and time periods justified for documented security/operations purposes. Prefer aggregate operational metrics without visitor IDs; do not call hashed IPs irreversibly anonymised. Check CDN caches and third-party error reporters separately. Transport/TLS must remain verified.
+
+Existing bounded activity records retain up to1000events/90days subject to pruning; membership cleanup is bounded and needs an operator schedule on quiet sites. Server-side expired session/proof records and retained closed Members are not instantly erased by the browser mode. Choose reviewed per-dataset periods, account-rights processes, backup expiry and provider retention under applicable law. No production retention change or deletion is performed by these recommendations.
+
+Run `RAILS_ENV=production bundle exec rake privacy:inspect` only with the installed host's prepared environment and normal native privileges. It performs fixed-route in-process public HTTP inspection and writes a private snapshot for Settings → Privacy. It never fetches an arbitrary URL, inspects a real browser, modifies CA/clock settings or certifies host logs/legal compliance. Re-run after policy/theme/content/deployment changes; the timestamp is an observation, not independently attested UTC.

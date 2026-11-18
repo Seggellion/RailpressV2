@@ -1,0 +1,19 @@
+<% content_for :title, "Privacy · Railpress" %>
+<h1>Privacy and anonymous browsing</h1>
+<p>This setting limits nonessential storage and automatic third-party resources on supported public pages. It is not a GDPR exemption or a claim that no personal data is processed.</p>
+<%= form_with url: admin_privacy_path, method: :patch, scope: :privacy do |form| %>
+  <%= hidden_field_tag :revision, @site.privacy_revision %>
+  <div class="checkbox"><%= form.check_box :enabled, checked: @site.privacy_first_anonymous? %><%= form.label :enabled, "Enable privacy-first anonymous browsing" %></div>
+  <p>When enabled, anonymous public GET/HEAD responses do not commit sessions or issue cookies. Core blocks automatic external resource connections. Dusk light/dark/system appearance uses no visitor preference storage.</p>
+  <%= form.submit "Save privacy policy" %>
+<% end %>
+<h2>What remains necessary</h2>
+<p>Login, setup, staff/member accounts and private previews retain essential security cookies, CSRF and expiring credentials. Email and Discord process account data only through the selected verification workflow. Turning this mode off does not install analytics.</p>
+<h2>Privacy posture</h2>
+<p>Current application policy: <strong><%= @site.privacy_first_anonymous? ? "Enabled" : "Off" %></strong>. Host/CDN/IP logs, actual browser storage/network behavior and legal compliance: <strong>not verified by this setting</strong>.</p>
+<% if @posture %>
+  <p>Operator-generated in-process HTTP snapshot: <%= @posture["checks_pass"] ? "checked responses meet the recorded application policy" : "action required in checked responses" %>. This is not browser or live-host attestation. Recorded host time (not independently qualified UTC): <%= @posture["observed_at"] %>.</p>
+  <ul><% @posture.fetch("routes").each do |row| %><li><%= row["path"] %>: HTTP <%= row["status"] %>; session cookie emitted: <%= row["set_cookie"] ? "yes" : "no" %>; external resource attributes: <%= row["external_resource_count"] %>.</li><% end %></ul>
+<% else %><p>No matching application-response snapshot is available. The host operator can run the documented privacy inspection task. No checks are inferred from the toggle alone.</p><% end %>
+<h2>Before public service</h2>
+<p>Review hosting and reverse-proxy logs, retention, providers, privacy notices and applicable law. Account closure revokes access but does not promise instant erasure. Only a qualified deployment review can support compliance claims.</p>

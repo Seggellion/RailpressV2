@@ -1,0 +1,82 @@
+<% content_for :title, "Set up your website · Railpress" %>
+<div class="installer">
+  <p class="eyebrow">A home for your ideas</p>
+  <% unless @claimed %>
+    <h1>Make it yours.</h1>
+    <p class="setup-lead">Welcome to Railpress. A few thoughtful choices will turn this prepared host into your own publishing space.</p>
+    <div class="setup-note"><strong>Start with your host operator.</strong><p>They provision Ruby, the database, persistent storage, HTTPS and a trusted Dusk package. This guide configures your website on that prepared host.</p></div>
+    <%= form_with url: claim_setup_path do |form| %>
+      <%= form.label :setup_secret, "Setup secret" %>
+      <p id="secret-help" class="hint">Ask the operator for the one-time secret from <code>bin/railpress setup-token</code>. It expires after 30 minutes. Your claimed session lasts 10 minutes.</p>
+      <%= form.password_field :setup_secret, required: true, autocomplete: "off", maxlength: 64, aria: { describedby: "secret-help" } %>
+      <label for="setup-language">Installer language</label><select id="setup-language" disabled><option>English</option></select>
+      <p class="hint">English is the qualified interface language in this release.</p>
+      <%= form.submit "Begin setup" %>
+    <% end %>
+  <% else %>
+    <nav aria-label="Installation progress"><ol class="setup-steps">
+      <% Installation::Progress::STEPS.each_with_index do |name, index| %>
+        <% label = name == "storage" ? "Media Storage" : name.capitalize %>
+        <li><% if (@progress["completed"] + [@progress["step"]]).include?(name) %><%= link_to "#{index + 1}. #{label}", setup_path(step: name), aria: { current: (@step == name ? "step" : nil) } %><% else %><span><%= index + 1 %>. <%= label %></span><% end %></li>
+      <% end %>
+    </ol></nav>
+    <p class="hint">Your progress is private. Returning to an earlier step and saving it requires you to review the following steps again.</p>
+    <h1><%= { "environment" => "A solid foundation.", "database" => "Connect your content.", "storage" => "A place for your media.", "identity" => "Introduce your website.", "owner" => "Your keys. Your website.", "appearance" => "Start with Dusk.", "membership" => "Membership and verification.", "review" => "Ready to make it yours?" }.fetch(@step) %></h1>
+    <% if @storage %><section class="setup-note" aria-label="Storage configuration status" role="status"><strong>Storage configuration — <%= @storage["state"] %></strong><ul><% @storage["cells"].each do |cell| %><li><strong><%= cell["key"].humanize %> — <%= cell["state"] %></strong><p><%= cell["detail"] %></p></li><% end %></ul></section><% end %>
+    <% if @environment %><ul class="setup-checks" aria-label="Environment observations">
+      <% @environment.each do |cell| %><li><strong><%= cell["key"].humanize %> — <%= cell["state"] %></strong><p><%= cell["detail"] %></p></li><% end %>
+    </ul><% end %>
+    <% if @step == "review" %>
+      <dl class="setup-summary">
+        <% @progress["data"].fetch("identity").each do |key, value| %><dt><%= key.humanize %></dt><dd><%= value %></dd><% end %>
+        <dt>Owner</dt><dd><%= @progress.dig("data", "owner", "username") %> · Password set securely</dd>
+        <dt>Theme and navigation</dt><dd>Dusk, an original starter homepage, selected About/Contact pages, one unpublished sample post and published header/mobile/footer navigation.</dd>
+        <dt>Membership</dt><dd><%= @progress.dig("data", "membership", "membership_mode") %>; registration <%= @progress.dig("data", "membership", "member_registration_enabled") ? "explicitly enabled after provider checks" : "closed" %>. Staff Owner remains local.</dd>
+        <dt>Media storage</dt><dd><%= @progress.dig("data", "storage", "backend") == "gcs" ? "Google Cloud Storage" : "Disk" %> — configuration saved; worker agreement and provider/durability verification remain separate. No existing media was migrated.</dd>
+        <dt>Follow-up</dt><dd>Replace starter text, verify contact details, review Site Readiness, mail delivery, worker heartbeat, backups and host availability. Local setup does not verify production hosting.</dd>
+      </dl>
+      <%= form_with url: complete_setup_path do |form| %><%= hidden_field_tag :revision, @progress["revision"] %><%= form.submit "Create my website" %><% end %>
+    <% else %>
+      <%= form_with url: advance_setup_path(step: @step), scope: :fields do |form| %>
+        <%= hidden_field_tag :revision, @progress["revision"] %>
+        <% case @step %>
+        <% when "environment" %>
+          <p>Required checks must be healthy before continuing. Unknown capabilities stay visible in Site Readiness after setup.</p>
+        <% when "database" %>
+          <p>Use the dedicated database supplied by your host. Settings are locked by the native host environment. A different selection requires the operator to apply it and restart Rails; this form never contacts an alternate endpoint.</p>
+          <%= form.label :adapter, "Database engine" %><%= form.select :adapter, [["PostgreSQL", "postgresql"], ["MySQL", "mysql2"]], selected: @connection["adapter"] %>
+          <% { "host" => "Host", "port" => "Port", "database" => "Database name", "username" => "Database username", "tls" => "TLS policy" }.each do |key, label| %><%= form.label key, label %><%= form.text_field key, value: @connection[key], required: true, maxlength: 255 %><% end %>
+          <%= form.label :password, "Database password (leave blank when using operator credentials)" %><%= form.password_field :password, autocomplete: "off" %>
+          <div class="checkbox"><%= form.check_box :use_operator_credentials, checked: true %><%= form.label :use_operator_credentials, "Use the credentials already secured by my operator" %></div>
+          <div class="setup-note">After testing the connection, the operator explicitly runs <code>bin/railpress install --prepare-schema</code>. The browser never runs migrations. Retry this step when the operator confirms completion.</div>
+        <% when "storage" %>
+          <%= render "media_storage", form: form, choices: @fields %>
+        <% when "identity" %>
+          <%= form.label :title, "Site name" %><%= form.text_field :title, value: @fields["title"], required: true, maxlength: 120, autocomplete: "organization" %>
+          <%= form.label :tagline, "Tagline (optional)" %><%= form.text_field :tagline, value: @fields["tagline"], maxlength: 240 %>
+          <%= form.label :canonical_origin, "Canonical website URL" %><%= form.url_field :canonical_origin, value: @fields["canonical_origin"] || @origin, required: true, aria: { describedby: "origin-help" } %><p id="origin-help" class="hint">Must match the fixed HTTPS origin configured by the operator. Request headers never set this value.</p>
+          <%= form.label :timezone, "Timezone (IANA name)" %><%= form.text_field :timezone, value: @fields["timezone"] || "Etc/UTC", required: true, placeholder: "America/Vancouver" %>
+          <%= form.label :locale, "Website language" %><%= form.select :locale, [["English", "en"]], selected: "en" %>
+          <%= form.label :home_mode, "Homepage" %><%= form.select :home_mode, [["A welcome page", "static"], ["Latest posts", "blog"]], selected: @fields["home_mode"] || "static" %>
+          <p class="hint">Blog index: <code>/blog</code>. Pages: <code>/:slug</code>. Posts: <code>/blog/:slug</code>. These core-owned initial routes preserve canonical URLs; alternate permalink schemes are unsupported.</p>
+          <div class="checkbox"><%= form.check_box :indexing_enabled, checked: [true, "1"].include?(@fields["indexing_enabled"]) %><%= form.label :indexing_enabled, "I approve search-engine indexing of public content" %></div><p class="hint">Off by default. This requests no indexing; public pages remain publicly readable.</p>
+        <% when "owner" %>
+          <p>The Owner controls accounts, publication and configuration. Store these credentials securely.</p>
+          <%= form.label :username, "Owner username" %><%= form.text_field :username, value: @fields["username"], required: true, minlength: 3, maxlength: 40, autocomplete: "username" %>
+          <%= form.label :email, "Owner email" %><%= form.email_field :email, value: @fields["email"], required: true, maxlength: 254, autocomplete: "email" %>
+          <%= form.label :password, "Password" %><p id="password-help" class="hint">Use at least 12 characters and at most 72 bytes. Passwords are never shown in review or restored to a form.</p><%= form.password_field :password, required: true, minlength: 12, autocomplete: "new-password", aria: { describedby: "password-help" } %>
+          <%= form.label :password_confirmation, "Confirm password" %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %>
+        <% when "membership" %>
+          <%= render "shared/membership_choices", form: form, choices: @fields, origin: Installation::Configuration.canonical_origin %>
+        <% when "appearance" %>
+          <p>Dusk brings calm typography, accessible navigation and responsive layouts. Your branding is stored in a versioned overlay; the trusted theme files stay immutable.</p>
+          <%= form.label :brand_label, "Brand name (optional)" %><%= form.text_field :brand_label, value: @fields["brand_label"], maxlength: 100 %>
+          <div class="checkbox"><%= form.check_box :about, checked: @fields.fetch("about", true) %><%= form.label :about, "Include an About starter page" %></div>
+          <div class="checkbox"><%= form.check_box :contact, checked: @fields.fetch("contact", true) %><%= form.label :contact, "Include a Contact starter page" %></div>
+          <p class="hint">Welcome and selected pages contain clearly identified starter text. The sample blog post stays unpublished. No stock claims, contact form or official article corpus are included.</p>
+        <% end %>
+        <div class="setup-actions"><%= form.submit @step == "storage" ? "Verify Storage Configuration" : @step == "database" ? "Test connection and continue" : @step == "environment" ? "Check and continue" : "Save and continue" %></div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

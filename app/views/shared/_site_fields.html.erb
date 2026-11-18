@@ -1,0 +1,19 @@
+<%= label_tag "site_title", "Site title" %>
+<%= text_field_tag "site[title]", site&.title, id: "site_title", required: true, maxlength: 120 %>
+<%= label_tag "site_tagline", "Tagline" %>
+<%= text_field_tag "site[tagline]", site&.tagline, id: "site_tagline", maxlength: 240 %>
+<%= label_tag "site_canonical_origin", "Canonical HTTPS origin" %>
+<p id="origin-help" class="hint">Your site's HTTPS address, without a page path. For example: https://example.org</p>
+<%= url_field_tag "site[canonical_origin]", site&.canonical_origin, id: "site_canonical_origin", required: true, "aria-describedby": "origin-help" %>
+<%= label_tag "site_locale", "Language" %>
+<%= select_tag "site[locale]", options_for_select([["English", "en"]], site&.locale || "en"), id: "site_locale" %>
+<%= label_tag "site_timezone", "IANA timezone" %>
+<%= text_field_tag "site[timezone]", site&.timezone || "Etc/UTC", id: "site_timezone", required: true, "aria-describedby": "timezone-help" %>
+<p id="timezone-help" class="hint">For example: America/Vancouver, Europe/London, or Etc/UTC.</p>
+<%= label_tag "site_home_mode", "Homepage preference" %>
+<%= select_tag "site[home_mode]", options_for_select([["Static page", "static"], ["Blog index", "blog"]], site&.home_mode || "static"), id: "site_home_mode" %>
+<p class="hint">Choose a published Page marked as your homepage in the content editor, or show the latest posts.</p>
+<div class="checkbox">
+  <%= check_box_tag "site[indexing_enabled]", "1", site&.indexing_enabled, id: "site_indexing_enabled" %>
+  <%= label_tag "site_indexing_enabled", "Allow search-engine indexing of public content" %>
+</div>

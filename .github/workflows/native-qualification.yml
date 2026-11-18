@@ -1,0 +1,36 @@
+name: Native candidate qualification
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native:
+    if: github.repository == 'Seggellion/RailpressV2'
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [postgresql, mysql2]
+    runs-on: [self-hosted, linux, X64, railpress-native-ephemeral]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - name: Guarded native tests, scans and production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /opt/railpress-ci/env.sh
+          bash scripts/native/ci.sh "${{ matrix.engine }}"
+      - name: Sanitized candidate result
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-${{ matrix.engine }}-candidate
+          path: .local/ci-candidate.json
+          if-no-files-found: error
+          retention-days: 7

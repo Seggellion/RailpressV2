@@ -1,0 +1,14 @@
+<% content_for :title, "Member access · Railpress" %>
+<p class="eyebrow">A place for your readers</p><h1>Member access.</h1>
+<p>Members are separate from this website's staff. Verification proves control of a mailbox or a Discord account, not a person's legal identity.</p>
+<% if @site && @site.member_registration_enabled %><p>New member registration is open for the configured methods below.</p><% else %><p>New member registration is closed. Previously verified members may use an available configured method. Staff and Owner sign-in remain available separately.</p><% end %>
+<% if @methods.include?("email") %>
+  <h2>Continue with email</h2><p>A single-use verification link will be sent to your mailbox. Your email provider processes this message. Links expire after 15 minutes.</p>
+  <%= form_with url: members_email_path do |form| %><%= form.label :email, "Email address" %><%= form.email_field :email, required: true, maxlength: 254, autocomplete: "email" %><%= form.submit "Email my verification link" %><% end %>
+<% end %>
+<% if @methods.include?("discord") %>
+  <h2>Continue with Discord</h2><p>This button opens a local confirmation page. Following its provider link leaves this website for Discord. Discord receives your browser request and asks permission for your account ID<%= @site.member_email_required ? " and email verification claim" : "" %>. No bot or server permissions are requested. Ordinary website browsing does not contact Discord.</p>
+  <%= form_with url: members_discord_path do |form| %><%= form.submit "Continue to Discord" %><% end %>
+<% end %>
+<% if @methods.empty? %><p>Public membership is disabled on this website.</p><% end %>
+<p><%= link_to "Confirm an email link", members_verify_path %> · <%= link_to "Staff sign-in and Owner recovery", login_path %> · <%= link_to "Return to the website", root_path %></p>

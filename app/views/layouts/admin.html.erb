@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= content_for?(:title) ? yield(:title) : "Administration · Railpress" %></title>
+  <%= csrf_meta_tags %>
+  <%= render "shared/core_icons" %>
+  <%= stylesheet_link_tag :app %>
+  <%= javascript_include_tag "admin_shell", defer: true %>
+</head>
+<body class="core admin-shell">
+<div id="admin-protected" data-auth-binding="<%= admin_session_binding %>">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="admin-topbar">
+  <%= link_to core_brand_label, admin_path, class: "brand" %>
+  <span><%= current_user.username %> · <%= current_user.role.humanize %></span>
+  <div class="admin-top-actions"><%= link_to "View site", root_path %><button type="submit" form="admin-signout">Sign out</button></div>
+</header>
+<div class="admin-layout">
+  <details class="admin-navigation" open data-admin-navigation>
+    <summary class="admin-toggle"><%= core_brand_icon %>Administration menu</summary>
+    <aside class="admin-sidebar">
+    <%= link_to core_brand_label, admin_path, class: "brand admin-sidebar-brand" %>
+    <nav aria-label="Administration"><ul class="admin-nav">
+    <% Administration::Navigation.for(current_user).each do |key, label, entries| %>
+      <li class="<%= "admin-ancestor" if admin_group_active?(key, entries) %>">
+      <% if entries.length == 1 && %w[dashboard media seo users settings].include?(key) %>
+        <% entry = entries.first %><%= link_to entry.label, admin_navigation_path(entry), aria: { current: (entry.key == admin_active_key ? "page" : nil) } %>
+      <% else %>
+        <details class="admin-nav-group" <%= "open" if admin_group_active?(key, entries) %>><summary><%= label %></summary><ul>
+        <% entries.each do |entry| %><li><%= link_to entry.label, admin_navigation_path(entry), aria: { current: (entry.key == admin_active_key ? "page" : nil) } %></li><% end %>
+        </ul></details>
+      <% end %>
+      </li>
+    <% end %>
+    </ul></nav>
+    <p class="admin-sidebar-note">Your website.<br>Built with Railpress.</p>
+    </aside>
+  </details>
+  <main id="main" class="core-panel admin-main" tabindex="-1">
+    <% if flash[:notice] %><p role="status" class="notice"><%= flash[:notice] %></p><% end %>
+    <% if @error %><p role="alert" class="error"><%= @error %></p><% end %>
+    <% if @errors.present? %><ul role="alert" class="error"><% @errors.each do |message| %><li><%= message %></li><% end %></ul><% end %>
+    <%= yield %>
+  </main>
+</div>
+<footer class="admin-footer">Core administration · Independent of your public theme</footer>
+<%= form_with url: logout_path, method: :delete, id: "admin-signout", html: { hidden: true }, data: { turbo: false, admin_signout: true } do %><% end %>
+</div>
+<p id="admin-session-message" role="alert" hidden>Session verification is unavailable. Reconnect and reload this page.</p>
+</body>
+</html>

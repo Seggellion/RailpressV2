@@ -1,0 +1,12 @@
+<% content_for :title, "Account recovery · Railpress" %>
+<h1>Recover your account.</h1>
+<% if @message %><p role="status" class="notice"><%= @message %></p><% end %>
+<% unless Identity::PasswordRecovery.mail_available? %>
+  <p class="notice">Email recovery is not configured. Your host operator can recover an owner account using the private operator tool.</p>
+<% end %>
+<%= form_with url: password_recovery_path, data: { turbo: false } do |form| %>
+  <%= form.label :identifier, "Username or email" %>
+  <%= form.text_field :identifier, required: true, autocomplete: "username", maxlength: 254 %>
+  <%= form.submit "Request recovery" %>
+<% end %>
+<%= link_to "Back to sign in", login_path %>

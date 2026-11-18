@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require_relative "../lib/railpress/native_host"
+id = ARGV.shift
+abort "Exact native request identity only" unless ARGV.empty? && Railpress::Releases::UUID.match?(id.to_s)
+config = Railpress::NativeHost::Config.new(ENV.fetch("RAILPRESS_NATIVE_HOST_ROOT"))
+config.database!
+require_relative "../config/environment"
+request = ReleaseRequest.find_by!(request_key: id)
+actor = User.find(request.actor_id)
+Identity::Capabilities.require!(actor, :inspect_updates)
+raise Railpress::NativeHost::Error, "owner_authorization_changed" unless actor.auth_version == request.actor_auth_version
+receipt = Railpress::NativeHost.load_document(config.path("run", "#{id}-result.json"), maximum: 65_536)
+request.with_lock do
+  changed = request.receipt != receipt
+  Releases::Requests.accept!(request: request, receipt: receipt)
+  if changed && (receipt.dig("statement", "completed") || receipt.dig("statement", "error"))
+    Activity::Recorder.record!(actor: actor, action: "release.completed",
+      outcome: receipt.dig("statement", "error") ? "failed" : "succeeded",
+      details: { operation: request.operation, digest: request.release_digest })
+  end
+end
+puts "Signed native receipt accepted."

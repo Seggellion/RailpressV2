@@ -1,0 +1,7 @@
+<%= label_tag "media_asset_title", "Image title" %><%= text_field_tag "media_asset[title]", asset.title, id: "media_asset_title", maxlength: 200 %>
+<%= label_tag "media_asset_alt_text", "Alternative text" %><%= text_field_tag "media_asset[alt_text]", asset.alt_text, id: "media_asset_alt_text", maxlength: 500, aria: { describedby: "alt_help" } %>
+<p id="alt_help">Describe the image's purpose. Leave empty only when marked decorative.</p>
+<label><%= hidden_field_tag "media_asset[decorative]", "0", id: nil %><%= check_box_tag "media_asset[decorative]", "1", asset.decorative? %> Decorative image</label>
+<%= label_tag "media_asset_caption", "Caption" %><%= text_area_tag "media_asset[caption]", asset.caption, id: "media_asset_caption", rows: 3, maxlength: 2000 %>
+<%= label_tag "media_asset_attribution", "Attribution" %><%= text_area_tag "media_asset[attribution]", asset.attribution, id: "media_asset_attribution", rows: 2, maxlength: 1000 %>
+<%= label_tag "media_asset_license_notes", "License notes" %><%= text_area_tag "media_asset[license_notes]", asset.license_notes, id: "media_asset_license_notes", rows: 2, maxlength: 1000 %>

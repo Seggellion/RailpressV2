@@ -1,0 +1,33 @@
+# examples:
+#   periodic_cleanup:
+#     class: CleanSoftDeletedRecordsJob
+#     queue: background
+#     args: [ 1000, { batch_size: 500 } ]
+#     schedule: every hour
+#   periodic_cleanup_with_command:
+#     command: "SoftDeletedRecord.due.delete_all"
+#     priority: 2
+#     schedule: at 5am every day
+
+production:
+  check_public_releases:
+    class: ReleaseCheckJob
+    schedule: every hour
+  report_media_configuration:
+    class: StorageConfigurationJob
+    schedule: every minute
+  refresh_official_news:
+    class: OfficialNewsSweepJob
+    schedule: every 15 minutes
+  prune_activity:
+    class: PruneActivityJob
+    schedule: every day at 3am
+  cleanup_media_uploads:
+    class: CleanupMediaUploadsJob
+    schedule: every hour
+  publish_due_content:
+    class: PublishDueContentJob
+    schedule: every minute
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12

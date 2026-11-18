@@ -1,0 +1,11 @@
+# Update notification contract
+
+Checks default OFF. Only the current Owner may opt in or select alpha/stable. The form discloses that GitHub sees the server IP and Railpress version; no site identity, content, Member data, account token or browser request is sent. Anonymous visitors and ordinary protected-page rendering cause no GitHub requests. Existing anonymous privacy controls remain independent; authentication keeps essential security state.
+
+The hourly background job uses a six-hour successful cache interval, a five-minute failure backoff, a 30-second duplicate-check lease and a bounded 15-second metadata operation. Transport verifies TLS/hostname, pins resolved public IPs, rejects private targets, bounds redirects/headers/body and ignores ambient proxy credentials. It checks at most20published records and5versioned candidates with four exact asset names. Main, drafts and missing asset sets do not become updates.
+
+Manifest signatures, revocation and per-channel sequence identity are verified before retention. Cached results are reverified, including version and exact repository asset paths. Failure retains last good signed metadata as STALE / UNKNOWN for up to30days with domain-bound SecurityClock2 deadlines. Opt-out removes cached release data but preserves replay authority. Fresh independent UTC is still required at staging; cached metadata is not expiry admission or installation proof.
+
+The dashboard and Updates page show the installed core/channel, available candidate, escaped changelog, compatibility and active theme identity/API. Locally staged, validated newer versions of the active theme are offered only when listed by the signed core compatibility inventory; preview is required before selection. Bundled Dusk may arrive with core. Third-party packages require existing trusted package metadata; no universal registry or inferred remote availability exists.
+
+Notices distinguish available core, combined core/theme, compatibility review, host/backup blocking, checked up-to-date, no signed bounded-list candidate and unknown/offline. An unsupported host never receives an executable-looking combined button. Signed native and combined results report actual phase/error rather than treating a request as completion.

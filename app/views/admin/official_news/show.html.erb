@@ -1,0 +1,27 @@
+<% content_for :title,"Official news preferences" %>
+<h1>Official news preferences</h1>
+<% if @error %><p><%= link_to "Reload preferences",admin_official_news_path %> to review the current state.</p><% end %>
+<p>News is optional and off by default. Fetching public metadata discloses this server's public IP address and the fixed User-Agent Railpress-OfficialNews/1 to the provider. No site identity, content, account data, credentials or administrator telemetry is sent.</p>
+<p>The fixed provider is Railpress.org over verified HTTPS. No images, scripts or article bodies are downloaded. Dashboard rendering reads only local data.</p>
+<p><strong><%= @news["state"] %></strong> · <%= @news["detail"] %></p>
+<p>Background refresh is normally six-hourly, with bounded retry/backoff. Last-good metadata may be shown stale for up to 30 days; disabling clears it and stops future requests. An already transmitted request cannot be recalled; disable completes after the bounded active refresh is fenced.</p>
+<% version=@state&.lock_version || 0 %>
+<div class="dashboard-actions">
+<% [["Enable optional news","enable"],["Disable and clear cache","disable"],["Clear cached metadata","clear"],["Request background refresh","refresh"]].each do |label,operation| %>
+<%= form_with url:admin_official_news_path,method: :patch do |form| %><%= form.hidden_field :version,value:version %><%= form.hidden_field :operation,value:operation %><%= form.submit label %><% end %>
+<% end %></div>
+<p>RSS alternative: <%= link_to "Railpress.org RSS","https://railpress.org/feed.xml",rel:"noopener noreferrer",referrerpolicy:"no-referrer" %>. It is a user-followed public link; the dashboard does not fetch it.</p>
+<details><summary>Official installation provider controls</summary>
+<p>Provider mode is for an ordinary installation with canonical origin https://railpress.org. Enabling it does not publish articles; only explicitly reviewed, currently public/index-eligible Posts can appear. A changed publication must be reviewed again. The official installation reads the same metadata locally.</p>
+<% if @site.canonical_origin==OfficialNews::Schema::ORIGIN %>
+<% [["Enable local provider","provider_enable"],["Disable local provider","provider_disable"]].each do |label,operation| %>
+<%= form_with url:admin_official_news_path,method: :patch do |form| %><%= form.hidden_field :version,value:version %><%= form.hidden_field :operation,value:operation %><%= form.submit label %><% end %><% end %>
+<% else %><p>Provider controls are unavailable for this canonical origin.</p><% end %>
+</details>
+<% if @state&.provider_enabled %><section><h2>Review published Posts</h2>
+<% if @posts.empty? %><p>No eligible public Posts. M14 articles have not been created or published.</p><% end %>
+<% @posts.each do |post| %><article class="dashboard-card"><h3><%= post.published_snapshot["title"] %></h3>
+<%= link_to "Review in editor",edit_admin_content_path(post) %>
+<%= form_with url:admin_official_news_review_path do |form| %><%= form.hidden_field :content_id,value:post.id %><%= form.hidden_field :version,value:post.lock_version %><%= form.submit "Approve this public metadata for official news" %><% end %></article><% end %>
+</section><% end %>
+<p><%= link_to "Back to dashboard",admin_path %></p>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <title>Railpress folded page and rails — original vector review concept</title>
+  <defs>
+    <mask id="page-cuts" maskUnits="userSpaceOnUse" x="0" y="0" width="96" height="96">
+      <rect width="96" height="96" fill="white"/>
+      <path d="M65 18v16h16z" fill="black"/>
+      <rect x="32" y="39" width="30" height="6" rx="3" fill="black"/>
+      <rect x="32" y="51" width="23" height="6" rx="3" fill="black"/>
+      <path d="M19 88Q42 66 81 63M48 90Q58 73 81 63" fill="none" stroke="black" stroke-width="6"/>
+    </mask>
+  </defs>
+  <path d="M17 25h1v53q0 5 4 9h-5q-9 0-9-9V34q0-9 9-9Z" fill="#f45d63"/>
+  <path d="M32 10h30q6 0 10 4l12 12q4 4 4 10v42q0 10-10 10H32q-10 0-10-10V20q0-10 10-10Z" fill="#f45d63" mask="url(#page-cuts)"/>
+</svg>

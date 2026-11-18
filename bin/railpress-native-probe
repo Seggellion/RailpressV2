@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+command, nonce = ARGV
+abort "Native probe arguments refused" unless (command == "report" && ARGV.length == 1) ||
+  (command == "enqueue" && ARGV.length == 2 && nonce.match?(/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/))
+require "bundler/setup"
+require_relative "../lib/railpress/native_scope"
+Railpress::NativeScope.verify!
+Railpress::NativeScope.boot!
+if command == "report"
+  load File.expand_path("../lib/railpress/native_web_probe.rb", __dir__)
+  puts JSON.generate(Railpress::NativeWebProbe.report)
+else
+  state = PlatformState.create!(scope_name: "native-release-probe-#{ENV.fetch('RAILPRESS_DEPLOYMENT_ID')}", key_name: nonce, payload: { "count" => 0 })
+  job = StateIncrementJob.perform_later(state.id)
+  raise "Native enqueue failed" unless job.provider_job_id
+  puts JSON.generate(canary_id: state.id, job_id: job.provider_job_id, nonce: nonce)
+end

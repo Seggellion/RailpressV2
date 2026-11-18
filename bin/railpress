@@ -1,0 +1,101 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "io/console"
+require_relative "../lib/railpress/bootstrap_state"
+root = File.expand_path("..", __dir__)
+Dir.chdir(root)
+begin
+command = ARGV.shift
+if %w[version --version].include?(command)
+  abort "No extra arguments permitted" unless ARGV.empty?
+  require_relative "../lib/railpress/product"
+  puts "#{Railpress::Product::FAMILY} #{Railpress::Product::VERSION} (#{Railpress::Product::CHANNEL})"
+  exit 0
+end
+if command == "release"
+  require "bundler/setup"
+  require_relative "../lib/railpress/native_host"
+  exit Railpress::NativeHost::Cli.run(ARGV)
+end
+state = Railpress::BootstrapState.for_application
+if %w[clock-status clock-reconcile].include?(command)
+  require "time"
+  clock = Railpress::SecurityClock.new(state.root)
+  begin
+    if command == "clock-status"
+      abort "No extra arguments permitted" unless ARGV.empty?
+      observation = clock.sample
+      puts JSON.generate(scheduled_publication_held: !observation["anomaly"].nil?,
+        utc_qualified: false, observed_discontinuity: observation["anomaly"],
+        guidance: "Verify UTC independently before clock-reconcile UTC_TIMESTAMP SOURCE. No host time is changed.")
+    else
+      timestamp, source = ARGV
+      abort "Supply exact verified UTC timestamp and source; no extra arguments" unless ARGV.length == 2 && timestamp.end_with?("Z")
+      clock.reconcile!(trusted_utc: Time.iso8601(timestamp).to_f, source: source)
+      puts "Clock hold cleared from the operator's UTC attestation. No external time source was contacted. Future anomalies hold scheduling again; host time was not changed."
+    end
+  rescue Railpress::SecurityClock::Unavailable, ArgumentError
+    abort "Clock authority could not be verified. Check private state and current UTC independently; no clock setting was changed."
+  end
+  exit 0
+end
+if command == "status"
+  abort "No extra arguments permitted" unless ARGV.empty?
+  puts JSON.generate(state.public_status)
+  exit 0
+end
+if command == "doctor"
+  ENV["DISABLE_BOOTSNAP"] = "1"
+  ENV["RAILPRESS_READ_ONLY_DOCTOR"] = "1"
+  abort "No extra arguments permitted; doctor does not perform repairs" unless ARGV.empty?
+  require_relative "../config/environment"
+  puts JSON.pretty_generate(Installation::Cli.doctor(state))
+  exit 0
+end
+abort "Interactive terminal required; secrets/passwords must not enter command arguments or logs" unless $stdin.tty? && $stdout.tty?
+case command
+when "install"
+  abort "Usage: bin/railpress install [--prepare-schema]" unless ARGV.empty? || ARGV == ["--prepare-schema"]
+  require_relative "../config/environment"
+  begin
+    ARGV.empty? ? Installation::Cli.install(state) : Installation::Cli.prepare_schema(state)
+  rescue Installation::Progress::Invalid, Installation::Progress::Conflict, Installation::Schema::Refused,
+    Installation::DatabaseProbe::Unsafe, Installation::DatabaseProbe::Unavailable, Railpress::BootstrapState::Error => error
+    warn error.message
+    abort "Installation stopped safely. Review the local wizard and operator configuration; progress is retained. No unknown database was dropped."
+  end
+when "setup-token"
+  abort "No extra arguments permitted" unless ARGV.empty?
+  token = state.issue!
+  puts "One-time setup secret (30 minutes; shown once):"
+  puts token
+when "recover-owner", "reconcile-setup"
+  expected_id = ARGV.shift
+  abort "Exact install ID required" unless expected_id && ARGV.empty? && expected_id.match?(/\A[0-9a-f-]{36}\z/)
+  require_relative "../config/environment"
+  puts "This affects only the configured site's owner/private setup state."
+  print "Retype the install ID to confirm: "
+  abort "Confirmation mismatch" unless $stdin.gets&.strip == expected_id
+  if command == "reconcile-setup"
+    Identity::OperatorRecovery.reconcile!(state: state, install_id: expected_id)
+  else
+    print "Owner username or email: "
+    identifier = $stdin.gets&.strip
+    print "New password: "
+    password = $stdin.noecho(&:gets)&.chomp
+    puts
+    print "Confirm new password: "
+    confirmation = $stdin.noecho(&:gets)&.chomp
+    puts
+    Identity::OperatorRecovery.recover!(state: state, install_id: expected_id, identifier: identifier,
+      password: password, confirmation: confirmation)
+  end
+  puts "Completed. Recovery revokes existing owner sessions; no email was sent."
+else
+  abort "Usage: bin/railpress status | clock-status | clock-reconcile UTC_TIMESTAMP SOURCE | doctor | install [--prepare-schema] | setup-token | recover-owner INSTALL_ID | reconcile-setup INSTALL_ID"
+end
+
+rescue Railpress::SecurityClock::Unavailable
+  abort "Security time is unavailable. Ask the operator to verify host time and private state, then sign in or reissue setup credentials."
+end

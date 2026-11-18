@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+ENV["RAILPRESS_PROCESS_ROLE"] = "worker"
+require_relative "../config/environment"
+abort "Worker awaits completed setup; no queue connection was opened." unless Railpress::BootstrapState.for_application.installed?
+require "solid_queue/cli"
+
+SolidQueue::Cli.start(ARGV)

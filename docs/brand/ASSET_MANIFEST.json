@@ -1,0 +1,198 @@
+{
+  "format": "railpress.core-brand.v2",
+  "mark_id": "original-ruby-and-rails",
+  "source": "docs/brand/source/railpress-emblem-de969df7df5f8d95.png",
+  "source_sha256": "de969df7df5f8d95649f3fee0f68c5c851e9ffbdf7286757b96917f239426f94",
+  "creator": "Seggellion",
+  "copyright_owner": "Altama Systems Incorporated",
+  "approval": {
+    "authority": "Owner response in this task",
+    "creator": "Seggellion",
+    "organization": "Altama Systems Incorporated",
+    "source_sha256": "de969df7df5f8d95649f3fee0f68c5c851e9ffbdf7286757b96917f239426f94",
+    "exact_response": "Authorize MIT emblem/derivatives; reserve trademarks",
+    "question_scope": "supplied emblem and faithful PNG/ICO derivatives reviewed in small-size-review.png; wordmark excluded",
+    "copyright_license": "MIT",
+    "trademark_rights": "reserved; no trademark grant inferred",
+    "wordmark_distribution": "EXCLUDED",
+    "authentic_vector": "NONE FOUND; none generated or traced"
+  },
+  "license_notice": "docs/brand/LOGO_LICENSE.md",
+  "authentic_vector": false,
+  "pipeline": {
+    "vips": "8.18.7",
+    "resample": "premultiplied alpha / Lanczos3 / unpremultiply / uchar / stripped PNG compression9",
+    "optical_bounds": [
+      172,
+      279,
+      1075,
+      1008
+    ],
+    "optical_bounds_threshold": 16,
+    "canvas_art_max_fraction": 0.875,
+    "original_shape_and_colors_repainted": false,
+    "notes": "Trim uses alpha>16 bounds to exclude faint background specks; all source pixels within the rectangle are retained. No facet/track simplification, color redesign or SVG trace. Owner review of exact crop/derivatives precedes any redistribution."
+  },
+  "roles": {
+    "emblem": "/brand/railpress-ruby-rails-192-28775b14513e2ba1.png",
+    "favicon16": "/brand/railpress-ruby-rails-16-cc8837908c5a2c44.png",
+    "favicon32": "/brand/railpress-ruby-rails-32-629b8e8d6aeaad5c.png",
+    "favicon48": "/brand/railpress-ruby-rails-48-b0cb5684c0a79164.png",
+    "touch180": "/brand/railpress-ruby-rails-180-0d5c2d2c8cd14882.png",
+    "application192": "/brand/railpress-ruby-rails-192-28775b14513e2ba1.png",
+    "application512": "/brand/railpress-ruby-rails-512-f7baa2ecf10b116f.png",
+    "ico": "/brand/favicon-ruby-rails-12450c03d2c8e308.ico"
+  },
+  "files": [
+    {
+      "name": "railpress-ruby-rails-16-cc8837908c5a2c44.png",
+      "sha256": "cc8837908c5a2c4466fea4d880c5fba5bef018cc46eb4b8211a3c7a5e817d7cf",
+      "bytes": 541,
+      "width": 16,
+      "height": 16,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-16-cc8837908c5a2c44.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "railpress-ruby-rails-32-629b8e8d6aeaad5c.png",
+      "sha256": "629b8e8d6aeaad5cb958fcbf0ba876936444147d360550cba0025b1de144e2de",
+      "bytes": 1401,
+      "width": 32,
+      "height": 32,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-32-629b8e8d6aeaad5c.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "railpress-ruby-rails-48-b0cb5684c0a79164.png",
+      "sha256": "b0cb5684c0a791640e5cbf034f587a96ad07b5845b34f1b3b5b295f9685888b7",
+      "bytes": 2417,
+      "width": 48,
+      "height": 48,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-48-b0cb5684c0a79164.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "railpress-ruby-rails-180-0d5c2d2c8cd14882.png",
+      "sha256": "0d5c2d2c8cd1488276664864f317fcc9b1f95cef0029960f5b62022d7be3964f",
+      "bytes": 17759,
+      "width": 180,
+      "height": 180,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-180-0d5c2d2c8cd14882.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "railpress-ruby-rails-192-28775b14513e2ba1.png",
+      "sha256": "28775b14513e2ba1d840412ffb08e5f9fec8ade6183acfcbbe129933855427d3",
+      "bytes": 19652,
+      "width": 192,
+      "height": 192,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-192-28775b14513e2ba1.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "railpress-ruby-rails-512-f7baa2ecf10b116f.png",
+      "sha256": "f7baa2ecf10b116f644d08334d38292e97516619276949ffc12920df59b84c7d",
+      "bytes": 109286,
+      "width": 512,
+      "height": 512,
+      "content_type": "image/png",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/railpress-ruby-rails-512-f7baa2ecf10b116f.png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "name": "favicon-ruby-rails-12450c03d2c8e308.ico",
+      "sha256": "12450c03d2c8e308576ff8078261828d5ea76d8cf14c25587184d298399cf07f",
+      "bytes": 36435,
+      "dimensions": [
+        16,
+        32,
+        48,
+        256
+      ],
+      "content_type": "image/vnd.microsoft.icon",
+      "alpha": true,
+      "standalone": true,
+      "path": "public/brand/favicon-ruby-rails-12450c03d2c8e308.ico",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved"
+    },
+    {
+      "path": "docs/brand/source/railpress-emblem-de969df7df5f8d95.png",
+      "sha256": "de969df7df5f8d95649f3fee0f68c5c851e9ffbdf7286757b96917f239426f94",
+      "bytes": 430719,
+      "width": 1254,
+      "height": 1254,
+      "content_type": "image/png",
+      "copyright_license": "MIT",
+      "creator": "Seggellion",
+      "copyright_owner": "Altama Systems Incorporated",
+      "trademark_rights": "reserved",
+      "role": "unaltered supplied raster master; not a web asset"
+    }
+  ],
+  "legacy_retention_files": [
+    {
+      "path": "public/brand/favicon-9344262c9cd4eab3.png",
+      "sha256": "9344262c9cd4eab3eabf37f29a3b1dea47b8decde4fd03ab5605b19cb6aaabc5",
+      "bytes": 939,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/favicon-da7eff0a98a3fc0a.ico",
+      "sha256": "da7eff0a98a3fc0a6807704edb9541cf4ec55475babad2b7a715f8faee3a9dd0",
+      "bytes": 2713,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/railpress-mark-919b0528d6b77f0c.svg",
+      "sha256": "919b0528d6b77f0c23bc2db3c6e1726417d59b9e0dd45722db93c32a4f4220d2",
+      "bytes": 831,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    },
+    {
+      "path": "public/brand/touch-icon-6e13f7b56aa206a9.png",
+      "sha256": "6e13f7b56aa206a944fac17c13dedf92beb6e9eb185f98dc4a28888e9e96ceab",
+      "bytes": 4827,
+      "rights": "Original vector and reviewed raster exports; Owner approved Railpress/MIT core distribution; root LICENSE applies."
+    }
+  ],
+  "secondary_concept": "docs/brand/concepts/folded-page/STATUS.md",
+  "wordmark_included": false
+}

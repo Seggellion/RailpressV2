@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="<%= @site.locale %>">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <%= seo_head(@seo) %>
+  <%= stylesheet_link_tag :app %>
+  <% (@theme_stylesheets || []).each do |url| %><%= stylesheet_link_tag url %><% end %>
+  <% if @theme_favicon %><%= tag.link rel: "icon", href: @theme_favicon, type: "image/png" %><% else %><%= render "shared/core_icons" %><% end %>
+  <% if @public_script_nonce %><%= javascript_include_tag "public_navigation", nonce: @public_script_nonce, defer: true %><% end %>
+</head>
+<body class="public-content<%= @theme_output ? " theme-#{@theme_pair.installation.theme_key}" : "" %>"<% if @theme_appearance %> data-dusk-appearance="<%= @theme_appearance %>" data-dusk-palette="<%= @theme_pair.overlay.options["palette"] %>"<% end %>><a class="skip-link" href="#main">Skip to content</a>
+<% if @theme_output %><%= @theme_output.navigation.html_safe %><% else %><header class="core-header"><%= link_to @site.title, "/" %><nav aria-label="Site"><%= link_to "Blog", "/blog" %></nav></header><% end %>
+<% if @navigation_preview %><aside class="notice" aria-label="Navigation preview"><p>Private menu preview: <%= @navigation_preview.name %>. Public visitors see the published navigation.</p><%= link_to "Return to menu editor", edit_admin_menu_path(@navigation_preview) %><%= button_to "Stop menu preview", admin_menus_stop_preview_path, form: { data: { turbo: false } } %></aside><% end %>
+<main id="main" class="reading-panel" tabindex="-1"><%= yield %></main>
+<% if @theme_output %><%= @theme_output.footer.html_safe %><% else %><footer class="core-footer"><%= @site.tagline %></footer><% end %>
+</body></html>

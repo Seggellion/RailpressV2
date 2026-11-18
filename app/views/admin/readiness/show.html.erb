@@ -1,0 +1,17 @@
+<% content_for :title, "Site Readiness · Railpress" %>
+<p class="eyebrow">Operations</p><h1>Site Readiness</h1>
+<p>Local observations, never a blanket production-health claim. Ordinary page loads do not run theme smokes, storage writes or remote requests.</p>
+<%= button_to "Request background assessment", admin_readiness_path %>
+<% if @run %>
+<p role="status">Assessment <%= @run.id %> · <strong><%= @run.state %></strong> · observed <%= @run.observed_at&.iso8601 || "not yet" %>.</p>
+<% if %w[pending running].include?(@run.state) %>
+<p>Reload this page after the worker processes the job. If it is stalled, cancel explicitly; pending work is not healthy evidence.</p>
+<%= button_to "Cancel this assessment", admin_readiness_run_path(@run), method: :delete, params: { version: @run.lock_version } %>
+<% end %>
+<% unless @fresh %><p role="alert">UNKNOWN — findings are missing, stale, from a future timestamp, or configuration changed. Request a new assessment.</p><% end %>
+<% if @run.failure_code %><p><%= @run.failure_code.humanize %>. Check worker availability and request another assessment.</p><% end %>
+<dl class="readiness-grid"><% @run.findings.each do |cell| %>
+<div><dt><%= cell.fetch("key").humanize %></dt><dd><strong class="state-pill"><%= @fresh ? cell.fetch("state") : "UNKNOWN" %></strong><p><%= cell.fetch("detail") %></p></dd></div>
+<% end %></dl>
+<% else %><p>No assessment yet. UNKNOWN applies to every operational service until evidence is collected.</p><% end %>
+<p>M05 historical clock/reliability and M08 valid-PNG child refusal remain open. Production backups, provider availability, hosted CI and complete assistive qualification remain deferred.</p>

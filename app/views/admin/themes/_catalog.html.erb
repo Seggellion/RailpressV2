@@ -1,0 +1,40 @@
+<p>Active: <strong><%= @state&.active_installation&.public_identity || "Core compatibility renderer; no signed default provisioned" %></strong>.</p>
+<p>Previous: <%= @state&.previous_installation&.public_identity || "None" %>. State version: <%= @state&.lock_version || 0 %>.</p>
+<%= button_to "Stop my preview", admin_themes_stop_preview_path %>
+<% if @state&.previous_installation %><%= button_to "Revert to retained package", admin_themes_revert_path, params: { version: @state.lock_version } %><% end %>
+<% if @packages.empty? %><p>No validated packages are staged. Ask the operator to provision the signed Dusk package. Core administration remains available.</p><% end %>
+<% @packages.each do |package| %>
+<section class="theme-card"><h2><%= package.manifest["name"] %></h2>
+<p><%= package.public_identity %> · API <%= package.manifest["api_version"] || 1 %> · signature and production smoke validated when staged. Readiness can request a fresh bounded check.</p>
+<details><summary>Version identity and compatibility</summary><p>Digest: <code><%= package.digest %></code></p><p>Required templates, API compatibility, allowed assets and signature are validated during operator staging. Active and previous packages are retained for recovery.</p></details>
+<h3>Immutable customization history</h3>
+<% package.theme_overlays.order(number: :desc).limit(50).each do |overlay| %>
+<div class="overlay-card"><p><strong>Overlay <%= overlay.number %></strong> · <%= overlay.created_at.iso8601 %><%= " · active" if @state&.active_overlay_id == overlay.id %></p>
+<details><summary>Saved options</summary><dl><% overlay.options.each do |key, value| %><dt><%= key.humanize %></dt><dd><%= value %></dd><% end %></dl></details>
+<div class="admin-actions"><%= button_to "Preview overlay #{overlay.number}", preview_admin_theme_path(package), params: { overlay_id: overlay.id } %><%= button_to "Activate overlay #{overlay.number}", activate_admin_theme_path(package), params: { overlay_id: overlay.id, version: @state&.lock_version || 0 } %></div></div>
+<% end %>
+<p>Latest 50 overlays shown. Preview requires your current signed-in owner session; activation requires your unexpired preview receipt. Other visitors continue to see the active published theme.</p>
+<details <%= "open" if action_name == "customize" %>><summary>Create a customization overlay</summary>
+<% saved = package.theme_overlays.order(number: :desc).first&.options || {} %>
+<%= form_with url: overlay_admin_theme_path(package), scope: :overlay, namespace: "theme_#{package.id}", data: { turbo: false } do |form| %>
+<% { palette: "palettes", font: "fonts", layout: "layouts", home_pattern: "home_patterns" }.each do |key, choices| %>
+<%= form.label key %><%= form.select key, options_for_select(package.manifest["options"][choices], saved[key.to_s]) %>
+<% end %>
+<% if Themes::Appearance.supported?(package.manifest) %>
+<%= form.label :appearance_mode, "Public appearance" %><%= form.select :appearance_mode, options_for_select([["Follow browser (system)", "system"], ["Light", "light"], ["Dark", "dark"]], saved.fetch("appearance_mode", "light")), aria: { describedby: "theme_#{package.id}_appearance_help" } %>
+<p id="theme_<%= package.id %>_appearance_help">Site-wide Dusk appearance. System follows the browser using CSS, without visitor preference storage. Save, preview, then activate. Protected administration stays independent.</p>
+<% end %>
+<% if package.manifest["options"].key?("artwork_styles") %>
+<%= form.label :artwork_style, "Homepage artwork" %><%= form.select :artwork_style, options_for_select([["Original editorial illustrations", "editorial"], ["Restrained (no bundled illustrations)", "none"]], saved.fetch("artwork_style", "editorial")) %>
+<p>Decorative original Dusk artwork. Your content and uploaded featured images retain priority. Save, preview, then activate.</p>
+<% end %>
+<%= form.label :brand_label, "Brand label (blank uses site title)" %><%= form.text_field :brand_label, value: saved["brand_label"], maxlength: 100 %>
+<%= form.label :header_style %><%= form.select :header_style, options_for_select(%w[standard centered], saved["header_style"]) %>
+<%= form.label :footer_style %><%= form.select :footer_style, options_for_select(%w[standard compact], saved["footer_style"]) %>
+<%= form.label :footer %><%= form.text_field :footer, value: saved["footer"], maxlength: 500 %>
+<%= form.label :logo_id, "Ready PNG logo with alternative text" %><%= form.select :logo_id, @theme_media, include_blank: "No logo" %>
+<%= form.label :favicon_id, "Ready PNG favicon with alternative text" %><%= form.select :favicon_id, @theme_media, include_blank: "No favicon" %>
+<p>Only validated private media, at most 1024 pixels per side, is eligible. Vendor files and core SEO policy are never edited by customization.</p>
+<%= form.submit "Save new immutable overlay" %><% end %></details>
+<% unless package.theme_key == "dusk" || [@state&.active_installation_id, @state&.previous_installation_id].include?(package.id) %><%= button_to "Remove from catalog", admin_theme_path(package), method: :delete %><% end %>
+</section><% end %>

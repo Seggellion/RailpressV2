@@ -1,0 +1,32 @@
+<h1>SEO correctness</h1>
+<p><%= link_to "Dashboard", admin_path %> · <%= link_to "Site settings", admin_settings_path %></p>
+<dl>
+  <dt>Source of truth</dt><dd>Configured site origin, approved public snapshots and core route policy.</dd>
+  <dt>Canonical origin</dt><dd><%= @site.canonical_origin %></dd>
+  <dt>Indexing policy</dt><dd><%= @policy.state %>: <%= @policy.reason %></dd>
+  <dt>Eligible sitemap URLs</dt><dd><%= @inventory_count %></dd>
+  <dt>HTTPS redirect origin</dt><dd><%= ENV.fetch("RAILPRESS_HTTPS_ORIGIN", "https://localhost") %>. The operator must align it with the canonical origin before hosting.</dd>
+  <dt>HTTP diagnostics</dt><dd><%= ENV["RAILPRESS_SEO_HTTP_ENABLED"] == "1" ? "Operator enabled; public same-origin inventory only." : "Disabled; offline policy checks available." %></dd>
+  <dt>Cache</dt><dd><%= Rails.cache.class.name %>; generation <%= @site.seo_generation %>. On cache failure the sitemap regenerates from the database.</dd>
+</dl>
+<p>Google indexing, ranking and crawling are unknown. These checks do not contact a search engine. Public rendering and publishing do not wait for remote diagnostics.</p>
+<%= form_with url: admin_seo_execute_path do |form| %>
+  <%= form.hidden_field :mode, value: "offline" %><%= form.submit "Queue offline correctness check" %>
+<% end %>
+<% if ENV["RAILPRESS_SEO_HTTP_ENABLED"] == "1" %>
+  <%= form_with url: admin_seo_execute_path do |form| %><%= form.hidden_field :mode, value: "http" %><%= form.submit "Queue public HTTP checks" %><% end %>
+<% end %>
+<p>Offline limit: 50 URLs. HTTP limit: 10 URLs. Larger inventories are reported as unsupported, never silently sampled. A worker must be running. An active run older than ten minutes can be replaced by starting a new check.</p>
+<h2>Recent diagnostics</h2>
+<% if @runs.empty? %><p>No diagnostic run has been recorded.</p><% end %>
+<% @runs.each do |run| %>
+  <article><h3>Run <%= run.id %>: <%= run.status %></h3>
+    <p><%= run.mode %> · <%= run.created_at.iso8601 %> · <%= run.generation == @site.seo_generation ? "Current policy generation" : "Stale: policy changed; queue a new check" %></p>
+    <% if run.active_key && run.updated_at < 10.minutes.ago %><p>Stalled: inspect worker health and queue a replacement.</p><% end %>
+    <pre><%= JSON.pretty_generate(run.summary) %></pre>
+    <% run.diagnostic_targets.order(:position).limit(50).each do |target| %><p><%= target.url %>: <%= target.checked_at ? target.result.fetch("codes", []).join(", ").presence || "No local mismatch found" : "Not checked" %></p><% end %>
+  </article>
+<% end %>
+<p>Finding actions: verify origin and publication/privacy settings for policy changes; inspect the worker for pending/stalled runs; restore the queue or network for unavailable checks; fix canonical/robots/structured-data mismatches in core rendering. Network safety refusals are not a reason to disable destination checks.</p>
+<h2>Recent historical URL identities</h2>
+<% @redirects.each do |item| %><p><%= item.source_path %> → content <%= item.target_content_id || "removed" %>. Only a current public target can redirect.</p><% end %>

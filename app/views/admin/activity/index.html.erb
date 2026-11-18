@@ -1,0 +1,5 @@
+<% content_for :title, "Activity · Railpress" %>
+<h1>Activity</h1><p>Role-scoped activity. The journal retains up to 1,000 records for up to 90 days; it contains no content bodies, mail addresses, URLs, passwords or session tokens.</p>
+<% if @events.empty? %><p>No visible activity yet.</p><% end %>
+<ol class="activity-list"><% @events.each do |event| %><li><time datetime="<%= event.created_at.iso8601 %>"><%= event.created_at.iso8601 %></time> · <strong><%= event.action.humanize %></strong> · <%= event.outcome %> · <%= event.actor_name %><% if event.subject_type %> · <%= event.subject_type %> #<%= event.subject_id %><% end %><% if event.details.any? %><pre><%= JSON.pretty_generate(event.details) %></pre><% end %></li><% end %></ol>
+<nav aria-label="Activity pages"><%= link_to "Newer activity", admin_activity_path(page: @page - 1) if @page > 1 %> <%= link_to "Older activity", admin_activity_path(page: @page + 1) if @more && @page < 40 %></nav>
