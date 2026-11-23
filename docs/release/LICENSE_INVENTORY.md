@@ -90,7 +90,7 @@ Railpress-owned code is MIT. This inventory identifies installed external prereq
 |propshaft|1.3.2|MIT|recorded in private qualification inventory|
 |pstore|0.3.0|Ruby, BSD-2-Clause|recorded in private qualification inventory|
 |public_suffix|7.0.5|MIT|recorded in private qualification inventory|
-|puma|8.0.3|BSD-3-Clause|recorded in private qualification inventory|
+|puma|8.0.4|BSD-3-Clause|recorded in private qualification inventory|
 |raabro|1.5.0|MIT|recorded in private qualification inventory|
 |racc|1.8.1|Ruby, BSD-2-Clause|recorded in private qualification inventory|
 |rack|3.2.8|MIT|recorded in private qualification inventory|
