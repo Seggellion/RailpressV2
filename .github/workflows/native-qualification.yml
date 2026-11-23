@@ -30,6 +30,7 @@ jobs:
         shell: bash
         run: bash scripts/native/ci.sh "${{ matrix.engine }}"
       - name: Record sanitized candidate result
+        id: receipt
         if: always() && steps.checkout.outcome == 'success'
         env:
           BOOTSTRAP_OUTCOME: ${{ steps.bootstrap.outcome }}
@@ -42,4 +43,13 @@ jobs:
           name: native-${{ matrix.engine }}-candidate
           path: ${{ runner.temp }}/railpress-ci-candidate.json
           if-no-files-found: error
+          retention-days: 7
+      - name: Retain verified public build assets
+        if: steps.receipt.outcome == 'success' && steps.qualify.outcome == 'success' && matrix.engine == 'postgresql'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-qualified-public-assets
+          path: ${{ runner.temp }}/railpress-ci-public-assets.zip
+          if-no-files-found: error
+          compression-level: 0
           retention-days: 7
