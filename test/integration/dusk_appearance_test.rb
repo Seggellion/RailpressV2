@@ -154,8 +154,8 @@ class DuskAppearanceTest < ActionDispatch::IntegrationTest
     end
     assert_equal bundle.files, Themes::Storage.load(package).files
     css = bundle.files.fetch("assets/public.css")
-    assert_includes css, "prefers-color-scheme:dark"
-    assert_includes css, "color-scheme:dark"
+    assert_match(/\(\s*prefers-color-scheme\s*:\s*dark\s*\)/, css)
+    assert_match(/(?:\A|[;{])\s*color-scheme\s*:\s*dark\s*[;}]/, css)
     refute_match(/localStorage|sessionStorage|document.cookie|@import|url\s*\(/, css)
   end
 

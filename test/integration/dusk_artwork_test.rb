@@ -48,7 +48,7 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
       get "/"
       assert_response :ok
       doc = Nokogiri::HTML(response.body)
-      actual = [ observed_head, doc.at_css("main").text, doc.css("header a,footer a").map { |link| link["href"] } ]
+      actual = [ observed_head, doc.at_css("main").text.squish, doc.css("header a,footer a").map { |link| link["href"] } ]
       baseline ||= actual
       assert_equal baseline, actual
       assert_nil response.headers["Set-Cookie"]

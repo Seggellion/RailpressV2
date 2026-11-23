@@ -90,10 +90,12 @@ module Railpress
               raise Invalid, "archive_padding" unless padding && padding.bytes.all?(&:zero?)
               target = File.join(temporary, name)
               FileUtils.mkdir_p(File.dirname(target), mode: 0o700)
-              File.open(target, File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW, row["mode"] == 0o755 ? 0o555 : 0o444) do |file|
+              immutable_mode = row["mode"] == 0o755 ? 0o555 : 0o444
+              File.open(target, File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW, immutable_mode) do |file|
                 file.binmode
                 file.write(data)
                 file.flush
+                file.chmod(immutable_mode)
                 file.fsync
               end
               raise Invalid, "archive_resource_limit" if SecurityClock.elapsed - started > 30

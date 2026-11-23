@@ -7,6 +7,7 @@ class ReleaseProtocolTest < ActiveSupport::TestCase
   teardown { release_teardown }
 
   test "deterministic native bundle and signed manifest stage without changing running product" do
+    original_mask = File.umask(0o077)
     second = build_release
     assert_equal @release_fixture, second
     receipt = stage_release
@@ -15,6 +16,8 @@ class ReleaseProtocolTest < ActiveSupport::TestCase
     assert_equal Railpress::Product::VERSION, @operator.status["installed"]["version"]
     assert_equal false, @operator.status["active_switch_supported"]
     assert Railpress::Releases::Bundle.verify_tree!(File.join(@operator_root, "staging", @release_fixture["release_id"]), @release_fixture["manifest"])
+  ensure
+    File.umask(original_mask) if original_mask
   end
 
   test "native process restart and same request retry are idempotent" do
