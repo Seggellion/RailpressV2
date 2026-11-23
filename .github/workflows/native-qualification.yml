@@ -15,22 +15,31 @@ jobs:
       fail-fast: false
       matrix:
         engine: [postgresql, mysql2]
-    runs-on: [self-hosted, linux, X64, railpress-native-ephemeral]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        id: checkout
         with:
           persist-credentials: false
+      - name: Bootstrap verified native tools
+        id: bootstrap
+        run: bash scripts/native/ci-bootstrap.sh
       - name: Guarded native tests, scans and production build
+        id: qualify
         shell: bash
-        run: |
-          set -euo pipefail
-          source /opt/railpress-ci/env.sh
-          bash scripts/native/ci.sh "${{ matrix.engine }}"
+        run: bash scripts/native/ci.sh "${{ matrix.engine }}"
+      - name: Record sanitized candidate result
+        if: always() && steps.checkout.outcome == 'success'
+        env:
+          BOOTSTRAP_OUTCOME: ${{ steps.bootstrap.outcome }}
+          QUALIFICATION_OUTCOME: ${{ steps.qualify.outcome }}
+        run: python3 scripts/native/ci-report.py "${{ matrix.engine }}"
       - name: Sanitized candidate result
-        if: success()
+        if: always() && steps.checkout.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-${{ matrix.engine }}-candidate
-          path: .local/ci-candidate.json
+          path: ${{ runner.temp }}/railpress-ci-candidate.json
           if-no-files-found: error
           retention-days: 7

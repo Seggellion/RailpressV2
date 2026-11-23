@@ -6,7 +6,7 @@ This source uses Railpress2.0.0-alpha.1; historical0.1 evidence has not been ren
 - Production host, independent UTC authority, signing ceremony, supported recovery drill and maintenance cutover require separate admission.
 - Historical MySQL timing/restoration, M05 clock/reliability and M08 observations remain open with causes UNKNOWN; source publication does not resolve them.
 - Current Chrome/provider/assistive-technology gates remain explicitly unqualified where not executed. No WCAG conformance, GDPR exemption, zero-IP-log or cross-browser claim.
-- Public main qualification requires the separately provisioned ephemeral native runner. No hosted CI pass is claimed until actual run results exist.
+- Public main qualification runs on standard GitHub-hosted Ubuntu VMs with the repository-controlled native bootstrap. Hosted CI evidence requires completed jobs on the exact source.
 - No marketplace, unattended upgrades, universal third-party theme registry, automatic database restoration or automatic public deployment.
 
 Updates are optional, cached, signed-metadata-driven and Owner approved. Unsupported hosts cannot execute activation through a working-looking button. See the four release contract documents for precise boundaries.

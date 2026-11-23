@@ -1,0 +1,10 @@
+# SHA-256 pins from the reviewed native qualification inputs. HTTPS only.
+5e5d85ad93b0adcccbad47733680f4892bd0078e3342437f7babce01c1872479 ruby-3.4.12.tar.gz https://cache.ruby-lang.org/pub/ruby/3.4/ruby-3.4.12.tar.gz
+9d5cd8633043b75740d5d59749c6b7365e6aeb53c47098b1a5e80bb18f87881a postgresql-16.16.tar.bz2 https://ftp.postgresql.org/pub/source/v16.16/postgresql-16.16.tar.bz2
+5dfbb764f731df40ef9e4f5d69aed32bdac8ba1af20bd96b7d40a942d83d4ed2 mysql-8.4.13.tar.xz https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.13-linux-glibc2.28-x86_64-minimal.tar.xz
+5baaead3b0bb20ffdb9e9ff09aa9fda08620923df77b63b436654cb5e0b3bf94 vips-8.18.7.tar.xz https://github.com/libvips/libvips/releases/download/v8.18.7/vips-8.18.7.tar.xz
+3cf46f5ed7504d460125866b7bea99fb357f31d887e2e63b35503310e9b8b6c8 nginx-1.30.6.tar.gz https://nginx.org/download/nginx-1.30.6.tar.gz
+1c5ffab71efecefa0e3c23516c3a3a1dccb45cc310ae1095c6f14ae268e38067 libwebp-1.6.0-linux-x86-64.tar.gz https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0-linux-x86-64.tar.gz
+16ca64e20816a0cf151a948fb141d788602996d2b4d73577b74388fe84fa98bc bundler-4.0.24.gem https://rubygems.org/downloads/bundler-4.0.24.gem
+930bc7542cbd9f57009e182fd014eba48cf1a0180a7b9006d2d32d8f168d8b02 meson-1.12.1-py3-none-any.whl https://files.pythonhosted.org/packages/57/99/36cd25f9598eef70db97577440a70a360af505f6f01c2338a18d1556079c/meson-1.12.1-py3-none-any.whl
+65a24341b5ac09fcadcc37082660be40a94174e51a937fabf6e2cae26225fa2c ninja-1.13.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl https://files.pythonhosted.org/packages/6e/53/ebfed7b689c338dd8ebeec9c0730c8d56821292f14e2536e5f3ef1a05744/ninja-1.13.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
