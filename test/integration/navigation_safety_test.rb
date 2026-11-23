@@ -31,7 +31,9 @@ class NavigationSafetyTest < ActionDispatch::IntegrationTest
   test "nested footer and documentation slots render every level with native disclosures" do
     activate(navigation_package)
     page = change(draft("Page", slug: "guide"), "publish")
-    menu = menu_create; %w[Root Branch Leaf].each { |label| add_link(menu, label) }
+    menu = menu_create
+    mutate(menu, "add", { "item" => { "kind" => "Page", "label" => "Root", "content_id" => page.id } })
+    %w[Branch Leaf].each { |label| add_link(menu, label) }
     rows = ordered_tree(menu)
     mutate(menu, "move", { "key" => rows[1]["key"], "direction" => "indent" })
     mutate(menu, "move", { "key" => rows[2]["key"], "direction" => "indent" })
@@ -62,6 +64,7 @@ class NavigationSafetyTest < ActionDispatch::IntegrationTest
     observed_public_get "/"
     assert_select ".dusk-mobile-nav,script[src]", count: 0
     page = change(draft("Page", slug: "body-navigation"), "publish")
+    mutate(footer, "add", { "item" => { "kind" => "Page", "label" => "Body navigation", "content_id" => page.id } })
     assign_publish(footer, [ "dusk:documentation" ])
     observed_public_get "/body-navigation"
     assert_response :ok

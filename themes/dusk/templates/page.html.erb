@@ -11,7 +11,7 @@ documentation_tree = lambda do |items|
       tag.li { link }
     else
       tag.li do
-        tag.details(class: "dusk-submenu", open: current || descendant_current) do
+        tag.details(class: "dusk-submenu", data: { disclosure: true }, open: current || descendant_current) do
           tag.summary(item.label) + tag.ul(class: "dusk-sub-list") { tag.li { link } + descendants }
         end
       end
