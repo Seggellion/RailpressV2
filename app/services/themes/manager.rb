@@ -14,19 +14,23 @@ module Themes
         yield site, state
       end
     end
-    def stage!(actor:, directory:)
+    def stage!(actor:, directory:, predecessor_overlay_id: nil, expected_digest: nil)
       Identity::Capabilities.require!(actor, :manage_themes)
       bundle = Railpress::ThemePackage.load(directory, trusted_keys: Storage.trusted_keys)
+      raise Conflict, "theme_candidate_changed" if expected_digest && bundle.digest != expected_digest
       path = Storage.install(bundle)
       report = Smoke.call(path)
       locked(actor) do |site, state|
+        if bundle.manifest["id"] == "dusk" && ThemeInstallation.where(site: site, theme_key: "dusk", version: bundle.manifest["version"]).where.not(digest: bundle.digest).exists?
+          raise Conflict, "dusk_version_digest_conflict"
+        end
         package = ThemeInstallation.find_or_create_by!(site: site, theme_key: bundle.manifest["id"], version: bundle.manifest["version"], digest: bundle.digest) do |record|
           record.manifest = bundle.manifest
           record.smoke_report = report
         end
         raise Protected, "removed_identity" unless package.status == "validated"
         unless package.theme_overlays.exists?
-          initial = Appearance.inherited_attributes(state, package)
+          initial = Appearance.inherited_attributes(state, package, predecessor_id: predecessor_overlay_id)
           initial = initial.merge("artwork_style" => "none") if bundle.manifest["options"].key?("artwork_styles") && initial.any? && !initial.key?("artwork_style")
           overlay!(actor: actor, installation: package, attributes: initial)
         end

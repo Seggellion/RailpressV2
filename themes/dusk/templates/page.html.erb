@@ -1,16 +1,41 @@
 <%
-tree = lambda do |items|
-  safe_join(items.map do |item|
-    tag.li do
-      if item.children.any?
-        tag.details(data: { disclosure: true }, class: "dusk-submenu") do
-          safe_join([tag.summary(item.label), tag.ul(class: "dusk-sub-list") { safe_join([tag.li { link_to("Overview: #{item.label}", item.url) }, tree.call(item.children)]) }])
+documentation_tree = lambda do |items|
+  has_current = false
+  markup = items.map do |item|
+    current = item.url == theme.content.url
+    descendants, descendant_current = documentation_tree.call(item.children)
+    has_current ||= current || descendant_current
+    label = item.children.empty? ? item.label : "Overview: #{item.label}"
+    link = link_to(label, item.url, aria: { current: ("page" if current) })
+    if item.children.empty?
+      tag.li { link }
+    else
+      tag.li do
+        tag.details(class: "dusk-submenu", open: current || descendant_current) do
+          tag.summary(item.label) + tag.ul(class: "dusk-sub-list") { tag.li { link } + descendants }
         end
-      else
-        link_to(item.label, item.url)
       end
     end
-  end)
+  end
+  [safe_join(markup), has_current]
 end
+documentation, in_documentation = documentation_tree.call(theme.navigation.documentation)
 %>
-<div class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="page"><article class="dusk-wrap dusk-article"><header class="dusk-article-heading"><p class="dusk-kicker"><%= theme.site.title %></p><h1><%= theme.content.title %></h1><p class="dusk-lede"><%= theme.content.excerpt %></p></header><%= theme_component "media" %><% if theme.navigation.documentation.any? %><nav class="dusk-docs" aria-label="Documentation"><p class="dusk-kicker">In this guide</p><ul><%= tree.call(theme.navigation.documentation) %></ul></nav><% end %><div class="dusk-prose"><%= theme.content.body_html %><%= theme.content.blocks_html %></div></article></div>
+<div class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="page">
+  <article class="dusk-wrap dusk-article<%= " dusk-article-with-docs" if in_documentation %>">
+    <header class="dusk-article-heading">
+      <h1><%= theme.content.title %></h1>
+      <% unless theme.content.excerpt.empty? %><p class="dusk-lede"><%= theme.content.excerpt %></p><% end %>
+    </header>
+    <%= theme_component "media" %>
+    <div class="dusk-article-content">
+      <% if in_documentation %>
+        <nav class="dusk-docs" aria-label="Documentation">
+          <p class="dusk-kicker">In this section</p>
+          <ul><%= documentation %></ul>
+        </nav>
+      <% end %>
+      <div class="dusk-prose"><%= theme_body_with_section_ids %><%= theme.content.blocks_html %></div>
+    </div>
+  </article>
+</div>

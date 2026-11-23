@@ -8,6 +8,7 @@ module Admin
       @host_operations = ::Releases::HostStatus.operations
       @theme = ThemeState.find_by(site: Site.find_by!(singleton_key: 1))&.active_installation
       @catalog = ::Releases::Catalog.view
+      @dusk_status = ::Releases::DuskStatus.call
       @check_settings = ::Releases::Catalog.settings
       @combined_supported = ::Releases::Combined.capable?
       @theme_choices = @catalog["candidate"] ? ::Releases::Combined.choices(@catalog["candidate"]["manifest"]) : []
@@ -27,6 +28,11 @@ module Admin
       redirect_to admin_updates_path, status: :see_other, notice: "Release check preference saved. Checks run in the background."
     rescue ArgumentError
       render_core_error("Release check preference was rejected.", status: :unprocessable_entity)
+    end
+    def check_now
+      queued = ::Releases::Catalog.request_refresh!(actor: current_user)
+      notice = queued ? "Release check queued." : "Check unavailable. Confirm checks are enabled or wait before trying again."
+      redirect_to admin_updates_path, status: :see_other, notice: notice
     end
     def combined
       raise ArgumentError unless (params.keys - %w[release_id request_id theme_id authenticity_token controller action commit utf8]).empty?

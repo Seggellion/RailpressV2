@@ -31,7 +31,7 @@ class GenericSiteProfileTest < ActionDispatch::IntegrationTest
     assert_equal 20, Post.where(status: "draft", visibility: "private").count
     assert_equal 13, Page.publicly_visible.count
     assert_equal "dusk", ThemeState.first.active_installation.theme_key
-    assert_equal "1.3.0", ThemeState.first.active_installation.version
+    assert_equal "1.4.0", ThemeState.first.active_installation.version
     assert_equal 4, MenuLocation.where.not(published_menu_id: nil).count
     Site.first.update!(indexing_enabled: true)
     inventory = Seo::UrlInventory.call(site: Site.first)

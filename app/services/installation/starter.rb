@@ -9,7 +9,8 @@ module Installation
       pages << page(owner, "About", "about", "<p>Add your story here. Replace this starter text with accurate information about you or your organization.</p>") if choices["about"]
       pages << page(owner, "Contact", "contact", "<p>Add your preferred contact details here before sharing this page. No contact form or email delivery is configured by this starter.</p>") if choices["contact"]
       Editorial::Workflow.create!(actor: owner, kind: "Post", attributes: { "title" => "Your first story", "slug" => "your-first-story", "body" => "<p>Start writing here. This sample post stays a draft until you choose to publish it.</p>" })
-      package = Themes::Manager.stage!(actor: owner, directory: ENV.fetch("RAILPRESS_INSTALL_THEME"))
+      expected = Environment.candidate
+      package = Themes::Manager.stage!(actor: owner, directory: ENV.fetch("RAILPRESS_INSTALL_THEME"), expected_digest: expected.digest)
       overlay = Themes::Manager.overlay!(actor: owner, installation: package, attributes: { "brand_label" => choices["brand_label"] })
       token = UserSession.issue!(owner)
       begin

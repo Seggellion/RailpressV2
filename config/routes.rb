@@ -82,6 +82,7 @@ Rails.application.routes.draw do
     get "updates" => "updates#index"
     post "updates/stage" => "updates#create", as: :updates_stage
     post "updates/checks" => "updates#checks", as: :updates_checks
+    post "updates/check-now" => "updates#check_now", as: :updates_check_now
     post "updates/combined" => "updates#combined", as: :updates_combined
     get "seo" => "seo#show", as: :seo
     post "seo/execute" => "seo#execute", as: :seo_execute

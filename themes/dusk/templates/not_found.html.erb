@@ -1,1 +1,15 @@
-<section class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="not_found"><div class="dusk-wrap dusk-empty"><p class="dusk-kicker">404 / A different path</p><h1>This page is out of view.</h1><p class="dusk-lede">It may have moved, or the address may be incomplete.</p><a class="dusk-button" href="<%= theme.site.home_url %>">Return home <span aria-hidden="true">↗</span></a><p><a class="dusk-text-link" href="<%= theme.site.search_url %>">Search this site</a></p></div></section>
+<section class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="not_found">
+  <div class="dusk-wrap dusk-empty">
+    <p class="dusk-kicker">404</p>
+    <h1>Page not found</h1>
+    <p class="dusk-lede">Check the address, return to the homepage, or search for what you were looking for.</p>
+    <a class="dusk-button" href="<%= theme.site.home_url %>">Return home</a>
+      <form class="dusk-search" action="<%= theme.site.search_url %>" method="get">
+        <label for="dusk-query">Search this site</label>
+        <div class="dusk-search-fields">
+          <input id="dusk-query" name="q" type="search" value="<%= theme.query %>">
+          <button type="submit">Search</button>
+        </div>
+      </form>
+  </div>
+</section>

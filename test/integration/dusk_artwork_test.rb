@@ -15,8 +15,8 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
   test "approved artwork is bounded immutable and every responsive derivative decodes" do
     package = artwork_package
     bundle = Themes::Storage.load(package)
-    assert_equal "1.3.0", package.version
-    assert_equal 25, bundle.manifest["assets"].length
+    assert_equal "1.4.0", package.version
+    assert_equal 17, bundle.manifest["assets"].length
     assert_operator bundle.files.values.sum(&:bytesize), :<, Railpress::ThemePackage::MAX_BYTES
     assert_equal 2 * 1024 * 1024, Railpress::ThemePackage::MAX_BYTES
     rows = bundle.manifest["assets"].filter_map do |name, asset|
@@ -29,9 +29,9 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
       assert_equal asset["content_type"], info[:type]
       { name: name, **asset, dimensions: info.slice(:width, :height) }
     end
-    assert_equal 24, rows.length
-    assert_equal 18, rows.count { |row| row["content_type"] == "image/webp" }
-    assert_equal 6, rows.count { |row| row["content_type"] == "image/png" }
+    assert_equal 16, rows.length
+    assert_equal 12, rows.count { |row| row["content_type"] == "image/webp" }
+    assert_equal 4, rows.count { |row| row["content_type"] == "image/png" }
     evidence("artwork-assets", rows)
   end
   test "responsive home art preserves text SEO privacy and protected ownership across modes" do
@@ -79,7 +79,7 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
     csrf = csrf_token_for(self, "/admin/themes")
     post "/admin/themes/#{package.id}/preview", params: { authenticity_token: csrf, overlay_id: illustrated.id }
     get "/"
-    assert_select "picture", count: 3
+    assert_select "picture", count: 1
     assert_select 'link[rel="canonical"],script[type="application/ld+json"]', count: 0
     assert_includes response.headers["Cache-Control"], "no-store"
     visitor = ActionDispatch::Integration::Session.new(Rails.application)
@@ -113,7 +113,7 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
     srcset = doc.at_css("picture source")["srcset"]
     rows = srcset.split(",").map do |candidate|
       url = candidate.strip.split.first
-      assert_match %r{\A/theme-assets/dusk/1\.3\.0/#{package.digest}/}, url
+      assert_match %r{\A/theme-assets/dusk/#{Regexp.escape(package.version)}/#{package.digest}/}, url
       get url
       assert_response :ok
       assert_equal "image/webp", response.media_type
@@ -124,7 +124,7 @@ class DuskArtworkTest < ActionDispatch::IntegrationTest
       assert Railpress::ThemeWebp.inspect!(response.body).fetch(:width).positive?
       { url: url, bytes: response.body.bytesize, sha256: Digest::SHA256.hexdigest(response.body) }
     end
-    get "/theme-assets/dusk/1.3.0/#{package.digest}/not-listed.webp"
+    get "/theme-assets/dusk/#{package.version}/#{package.digest}/not-listed.webp"
     assert_response :not_found
     evidence("artwork-delivery", rows)
   end

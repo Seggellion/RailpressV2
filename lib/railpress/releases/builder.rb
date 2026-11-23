@@ -8,7 +8,8 @@ module Railpress
       module_function
       # Caller supplies reviewed source bytes and a synthetic signer in qualification.
       # Production signing/custody and distribution are separate owner gates.
-      def build(files:, metadata:, compatibility:, signer:)
+      def build(files:, metadata:, compatibility:, signer:, dusk: nil)
+        files = DuskOffer.bind(files, compatibility, metadata, **dusk) if dusk
         raise Invalid, "builder_files" unless files.is_a?(Hash) && files.length.between?(1, 4096)
         inventory = {}
         tar = StringIO.new("".b)
@@ -47,8 +48,10 @@ module Railpress
         Manifest.validate!(manifest)
         signature = { "algorithm" => "ed25519", "key_id" => Releases.key_id(signer),
           "signature" => Base64.strict_encode64(signer.sign(nil, Releases.canonical(manifest))) }
-        { "release_id" => Digest::SHA256.hexdigest(Releases.canonical(manifest)), "manifest" => manifest,
+        artifact = { "release_id" => Digest::SHA256.hexdigest(Releases.canonical(manifest)), "manifest" => manifest,
           "signature" => signature, "package" => package }
+        artifact[DuskOffer::ASSET_NAME] = files.fetch(DuskOffer::INVENTORY_PATH).fetch("bytes") if dusk
+        artifact
       end
     end
   end

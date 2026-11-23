@@ -6,6 +6,7 @@ module Releases
     SCOPE = "release_updates"
     FRESH = 6.hours.to_i
     RETAIN = 30.days.to_i
+    RETRY = 5.minutes.to_i
     module_function
     def row(key) = PlatformState.find_by(scope_name: SCOPE, key_name: key)
     def payload(key) = PlatformState.uncached { row(key)&.payload } || {}
@@ -30,17 +31,37 @@ module Releases
       end
       ReleaseCheckJob.perform_later if enabled
     end
+    def request_refresh!(actor:, clock: Railpress::SecurityClock.for_application)
+      queued = Site.transaction do
+        Site.find_by!(singleton_key: 1).lock!; actor.lock!
+        Identity::Capabilities.require!(actor, :inspect_updates)
+        config = settings
+        cache = payload("catalog")
+        next false unless config["enabled"] && !clock.sample["anomaly"]
+        next false if valid?(clock, cache["manual_cooldown"], RETRY) || valid?(clock, cache["lease_binding"], 30)
+        next false if cache["error"] && valid?(clock, cache["next_check"], RETRY)
+        save!("catalog", cache.merge("manual_generation" => config["generation"], "manual_cooldown" => binding(clock, RETRY)))
+        true
+      end
+      ReleaseCheckJob.perform_later if queued
+      queued
+    end
     def refresh!(source: GithubSource.new, clock: Railpress::SecurityClock.for_application)
       lease = SecureRandom.uuid
       generation = Site.transaction do
         Site.find_by!(singleton_key: 1).lock!
         config = settings; cache = payload("catalog")
         next unless config["enabled"] && !clock.sample["anomaly"]
-        next if (cache["generation"] == config["generation"] && valid?(clock, cache["next_check"], cache.fetch("next_check_ttl", FRESH))) || valid?(clock, cache["lease_binding"], 30)
-        save!("catalog", cache.merge("generation" => config["generation"], "lease" => lease, "lease_binding" => binding(clock, 30)))
+        manual = cache["manual_generation"] == config["generation"] && valid?(clock, cache["manual_cooldown"], RETRY)
+        next if valid?(clock, cache["lease_binding"], 30)
+        throttled = cache["generation"] == config["generation"] && valid?(clock, cache["next_check"], cache.fetch("next_check_ttl", FRESH))
+        next if throttled && (!manual || cache["error"])
+        save!("catalog", cache.merge("generation" => config["generation"], "lease" => lease, "lease_binding" => binding(clock, 30),
+          "manual_generation" => nil, "last_attempt_at" => Time.now.utc.iso8601))
         config["generation"]
       end
       return unless generation
+      Requests.roots
       # Bounded metadata only. Packages are fetched solely by a trusted operator.
       candidates = Timeout.timeout(15) { source.releases.map { |candidate| source.metadata(candidate) } }
       Site.transaction do
@@ -58,7 +79,16 @@ module Releases
           raise ArgumentError, "release_package_url" unless candidate["package_url"] == expected_url
           next unless manifest["channel"] == config["channel"] || (config["channel"] == "alpha" && manifest["channel"] == "stable")
           id = Digest::SHA256.hexdigest(Railpress::Releases.canonical(manifest))
-          { "release_id" => id, **candidate }
+          accepted_item = { "release_id" => id, **candidate.except("dusk_metadata") }
+          if candidate["dusk_metadata"]
+            begin
+              Railpress::Releases::DuskOffer.verify!(manifest, candidate["dusk_metadata"])
+              accepted_item["dusk_metadata"] = candidate["dusk_metadata"]
+            rescue Railpress::Releases::Invalid
+              # A bad optional offer cannot become a trusted theme result.
+            end
+          end
+          accepted_item
         end
         # Check a channel's newest sequence only after the bounded list is parsed;
         # older published records remain historical, never replay authority.
@@ -72,14 +102,15 @@ module Releases
         end
         save!("trust", security)
         save!("catalog", { "items" => accepted, "generation" => generation, "fresh" => binding(clock, FRESH),
-          "retention" => binding(clock, RETAIN), "next_check" => binding(clock, FRESH), "next_check_ttl" => FRESH, "error" => nil })
+          "retention" => binding(clock, RETAIN), "next_check" => binding(clock, FRESH), "next_check_ttl" => FRESH,
+          "manual_cooldown" => cache["manual_cooldown"], "last_attempt_at" => cache["last_attempt_at"], "last_success_at" => Time.now.utc.iso8601, "error" => nil })
       end
     rescue StandardError
       Site.transaction do
         Site.find_by!(singleton_key: 1).lock!
         cache = payload("catalog")
         save!("catalog", cache.merge("error" => "release_check_unavailable", "lease" => nil, "lease_binding" => nil,
-          "next_check" => binding(clock, 300), "next_check_ttl" => 300)) if cache["lease"] == lease
+          "next_check" => binding(clock, RETRY), "next_check_ttl" => RETRY)) if cache["lease"] == lease
       end
       nil
     end
@@ -105,8 +136,8 @@ module Releases
     def view
       config = settings; cache = payload("catalog")
       return { "state" => "DISABLED", "notice" => "Public release checks are off.", "candidate" => nil, "items" => [] } unless config["enabled"]
-      items = verified_items
-      items = items.select { |item| Railpress::Releases.compare_versions(item["version"], Railpress::Product::VERSION).positive? }
+      verified = verified_items
+      items = verified.select { |item| Railpress::Releases.compare_versions(item["version"], Railpress::Product::VERSION).positive? }
       candidate = items.max { |a, b| Railpress::Releases.compare_versions(a["version"], b["version"]) }
       compatible = false
       if candidate
@@ -116,10 +147,12 @@ module Releases
           compatible = false
         end
       end
-      fresh = !cache["error"] && valid?(Railpress::SecurityClock.for_application, cache["fresh"], FRESH)
+      fresh = !cache["error"] && cache["generation"] == config["generation"] &&
+        valid?(Railpress::SecurityClock.for_application, cache["fresh"], FRESH) &&
+        (Array(cache["items"]).empty? || verified.any?)
       { "state" => fresh ? "FRESH" : "STALE / UNKNOWN", "candidate" => candidate, "items" => items, "compatible" => compatible,
         "notice" => candidate ? (compatible ? "Railpress update available" : "Update requires compatibility review") :
-          (fresh ? (Array(cache["items"]).any? ? "Already up to date for the checked channel" : "No signed update is available in the bounded release listing") : "Release availability is unknown; local publishing remains available."),
+          (fresh ? (verified.any? ? "Already up to date for the checked channel" : "No signed update is available in the bounded release listing") : "Release availability is unknown; local publishing remains available."),
         "detail" => "Cached signed metadata only. Fresh trusted UTC, package verification, host and backup approval remain operator gates." }
     rescue StandardError
       { "state" => "UNKNOWN", "notice" => "Release evidence unavailable; local publishing remains available.", "candidate" => nil, "items" => [] }

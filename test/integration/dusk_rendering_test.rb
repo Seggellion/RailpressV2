@@ -106,6 +106,7 @@ class DuskRenderingTest < ActionDispatch::IntegrationTest
     get "/privacy"; assert_response :ok
     assert_select "h1", text: "Privacy — 日本語 Café 🌒"
     assert_select ".dusk-prose h2", text: "Our policy"
+    assert_select "h2#section-our-policy", text: "Our policy"
     refute_select = Nokogiri::HTML(response.body).css(".dusk-prose script")
     assert_empty refute_select
     get "/search", params: { q: '<script>alert("x")</script>' }
@@ -142,14 +143,17 @@ class DuskRenderingTest < ActionDispatch::IntegrationTest
     item = Themes::Navigation.method(:item)
     leaf = item.call(label: "日本語 & guide", url: "/guide")
     branch = item.call(label: "Learn", url: "/docs", children: [ leaf ])
-    slots = Themes::Navigation.slots(primary: [ branch ], footer: [ leaf ], documentation: [ leaf ])
-    context = Themes::Context.build(site: site, family: "page", presenter: ContentPresenter.new(change(draft("Page", slug: "docs"), "publish")), presenters: [], query: nil, title: "Docs", page: 1, more: false, path: "/docs", options: {}, navigation: slots)
+    slots = Themes::Navigation.slots(primary: [ branch ], footer: [ leaf ], documentation: [ branch ])
+    context = Themes::Context.build(site: site, family: "page", presenter: ContentPresenter.new(change(draft("Page", slug: "guide"), "publish")), presenters: [], query: nil, title: "Guide", page: 1, more: false, path: "/guide", options: {}, navigation: slots)
     output = Railpress::ThemeRenderer.render(bundle, context)
     doc = Nokogiri::HTML5.fragment(output.navigation)
     assert_equal 2, doc.css("details.dusk-submenu[data-disclosure] summary").length
     assert_equal 2, doc.css('a[href="/guide"]').length
     assert_equal "Learn", doc.at_css("summary").text
-    assert_includes output.body, 'aria-label="Documentation"'
+    body = Nokogiri::HTML5.fragment(output.body)
+    assert_equal "/guide", body.at_css('nav[aria-label="Documentation"] details[open] a[aria-current="page"]')["href"]
+    unrelated = context.with(content: context.content.with(url: "/guide-appendix"))
+    refute_includes Railpress::ThemeRenderer.render(bundle, unrelated).body, 'aria-label="Documentation"'
     assert context.navigation.frozen?
     assert_raises(FrozenError) { context.navigation.primary.first.label << "leak" }
     [ "//evil.invalid", "javascript:alert(1)", "/bad\nheader", "https://evil.invalid", "/a\\b" ].each do |url|

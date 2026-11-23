@@ -1,11 +1,15 @@
 #!/usr/bin/env ruby
 # Native operator staging; no web-upload or trust-on-install.
 require_relative "../config/environment"
-abort "Usage: bin/railpress-theme stage LOCAL_DIRECTORY --owner USERNAME" unless ARGV.length == 4 && ARGV[0] == "stage" && ARGV[2] == "--owner"
+usage = "Usage: bin/railpress-theme stage LOCAL_DIRECTORY --owner USERNAME [--predecessor-overlay ID]"
+abort usage unless [ 4, 6 ].include?(ARGV.length) && ARGV[0] == "stage" && ARGV[2] == "--owner"
+if ARGV.length == 6
+  abort usage unless ARGV[4] == "--predecessor-overlay" && ARGV[5].match?(/\A[1-9][0-9]{0,17}\z/)
+end
 actor = User.find_by!(username_key: ARGV[3].downcase)
 begin
-  package = Themes::Manager.stage!(actor: actor, directory: File.expand_path(ARGV[1]))
+  package = Themes::Manager.stage!(actor: actor, directory: File.expand_path(ARGV[1]), predecessor_overlay_id: ARGV[5])
   puts "Validated #{package.public_identity}; preview and activate through owner Themes."
-rescue Railpress::ThemePackage::Invalid, Themes::Manager::Protected, Identity::Capabilities::Denied => error
+rescue Railpress::ThemePackage::Invalid, Themes::Manager::Conflict, Themes::Manager::Protected, Identity::Capabilities::Denied => error
   abort "Staging refused: #{error.message}"
 end

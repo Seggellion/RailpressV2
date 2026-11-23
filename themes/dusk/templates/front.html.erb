@@ -1,1 +1,38 @@
-<div class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="front"><article class="dusk-wrap dusk-front"><header class="dusk-front-heading<%= " dusk-illustrated-heading" if theme_artwork? && theme.content.featured_html.to_s.empty? %>"><div><p class="dusk-kicker"><%= theme.site.tagline %></p><h1><%= theme.content.title %></h1><% if theme.content.excerpt.to_s.length > 0 %><p class="dusk-lede"><%= theme.content.excerpt %></p><% end %></div><% if theme_artwork? && theme.content.featured_html.to_s.empty? %><%= theme_picture "hero", loading: "eager", sizes: "(min-width: 58rem) 40vw, 100vw" %><% elsif !theme_artwork? %><span class="dusk-horizon" aria-hidden="true"></span><% end %></header><%= theme_component "media" %><div class="dusk-prose dusk-patterns"><%= theme.content.body_html %><%= theme.content.blocks_html %></div></article><div class="dusk-wrap"><% if theme.options.fetch("home_pattern", "journal") == "journal" && theme.recent_items.any? %><section class="dusk-recent" aria-labelledby="dusk-recent-title"><div class="dusk-section-heading"><div><p class="dusk-kicker">Notes & perspectives</p><h2 id="dusk-recent-title">From the journal</h2></div><a class="dusk-text-link" href="<%= theme.site.blog_url %>">All stories <span aria-hidden="true">↗</span></a></div><div class="dusk-cards"><% theme.recent_items.each_with_index do |item, index| %><article class="dusk-card"><% if theme_artwork? %><%= theme_picture %w[publishing customization foundation][index % 3], sizes: "(min-width: 58rem) 24vw, 100vw" %><% end %><% if item.published_at %><p class="dusk-kicker"><time datetime="<%= item.published_at %>"><%= item.published_at[0, 10] %></time></p><% end %><h3><a href="<%= item.url %>"><%= item.title %></a></h3><p><%= item.excerpt %></p></article><% end %></div></section><% end %></div></div>
+<% authored_media = !theme.content.featured_html.empty? %>
+<div class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="front">
+  <article class="dusk-wrap dusk-front">
+    <header class="dusk-front-heading<%= " dusk-illustrated-heading" if authored_media || theme_artwork? %>">
+      <div>
+        <h1><%= theme.content.title %></h1>
+        <% unless theme.content.excerpt.empty? %><p class="dusk-lede"><%= theme.content.excerpt %></p><% end %>
+      </div>
+      <% if authored_media %>
+        <%= theme_component "media" %>
+      <% elsif theme_artwork? %>
+        <%= theme_picture "hero", loading: "eager", sizes: "(min-width: 58rem) 40vw, 100vw" %>
+      <% end %>
+    </header>
+    <div class="dusk-prose dusk-patterns">
+      <% unless theme.content.body_html.empty? %><div class="dusk-front-copy"><%= theme.content.body_html %></div><% end %>
+      <%= theme.content.blocks_html %>
+    </div>
+  </article>
+  <% if theme.options.fetch("home_pattern", "journal") == "journal" && theme.recent_items.any? %>
+    <section class="dusk-wrap dusk-recent" aria-labelledby="dusk-recent-title">
+      <header class="dusk-section-heading">
+        <h2 id="dusk-recent-title">From the journal</h2>
+        <a class="dusk-text-link" href="<%= theme.site.blog_url %>">All posts <span aria-hidden="true">↗</span></a>
+      </header>
+      <div class="dusk-cards">
+        <% theme.recent_items.each_with_index do |item, index| %>
+          <article class="dusk-card">
+            <% if theme_artwork? %><%= theme_picture %w[publishing customization foundation][index], sizes: "(min-width: 58rem) 24vw, 100vw" %><% end %>
+            <% if item.published_at %><p class="dusk-kicker"><time datetime="<%= item.published_at %>"><%= item.published_at[0, 10] %></time></p><% end %>
+            <h3><a href="<%= item.url %>"><%= item.title %></a></h3>
+            <% unless item.excerpt.empty? %><p><%= item.excerpt %></p><% end %>
+          </article>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

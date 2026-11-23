@@ -1,6 +1,7 @@
 require "test_helper"
 require_relative "../support/release_test_support"
 require_relative "../support/theme_test_support"
+require "railpress/dusk_package"
 
 class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
   include ThemeTestSupport
@@ -31,10 +32,10 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     activate(@old_theme, @old_overlay)
     @theme_contract = [ Releases::Combined.theme_identity(@old_theme) ]
     @release_fixture = build_release(channel: "alpha")
+    base = "https://github.com/Seggellion/RailpressV2/releases/download/v#{@release_fixture.dig('manifest', 'version')}"
     @metadata = { "manifest" => @release_fixture["manifest"], "signature" => @release_fixture["signature"],
       "version" => @release_fixture["manifest"]["version"],
-      "package_url" => "https://github.com/Seggellion/RailpressV2/releases/download/v2.0.0-alpha.2/package.tar.gz",
-      "plan_url" => "https://github.com/Seggellion/RailpressV2/releases/download/v2.0.0-alpha.2/native-plan.json" }
+      "package_url" => "#{base}/package.tar.gz", "plan_url" => "#{base}/native-plan.json" }
     @source = Object.new
     @source.define_singleton_method(:releases) { [ "published release only" ] }
     data = @metadata
@@ -61,7 +62,7 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     File.write(ENV["RAILPRESS_NATIVE_PUBLIC_STATUS"], JSON.generate("statement" => statement, "signature" => signed(statement, @status_signer)), perm: 0o600)
   end
   test "product family and channels are independent and prereleases order numerically" do
-    assert_equal "2.0.0-alpha.1", Railpress::Product::VERSION
+    assert_equal "2.0.0-alpha.2", Railpress::Product::VERSION
     assert_equal "alpha", Railpress::Product::CHANNEL
     assert_operator Railpress::Releases.compare_versions("2.0.0-alpha.10", "2.0.0-alpha.2"), :>, 0
     assert_operator Railpress::Releases.compare_versions("2.0.0", "2.0.0-alpha.99"), :>, 0
@@ -84,14 +85,14 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     view = Releases::Catalog.view
     assert_equal "Railpress update available", view["notice"]
     assert view["compatible"]
-    assert_equal "2.0.0-alpha.2", view["candidate"]["version"]
+    assert_equal @metadata["version"], view["candidate"]["version"]
     assert_empty ReleaseRequest.all
     assert_equal @old_theme.id, ThemeState.first.active_installation_id
     Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
     unavailable = Object.new; unavailable.define_singleton_method(:releases) { raise "OFFLINE SECRET MUST NOT LEAK" }
     Releases::Catalog.refresh!(source: unavailable)
     assert_equal "STALE / UNKNOWN", Releases::Catalog.view["state"]
-    assert_equal "2.0.0-alpha.2", Releases::Catalog.view["candidate"]["version"]
+    assert_equal @metadata["version"], Releases::Catalog.view["candidate"]["version"]
     refute_includes Releases::Catalog.payload("catalog").to_json, "OFFLINE SECRET"
     Releases::Catalog.configure!(actor: @owner, enabled: false, channel: "alpha")
     assert_equal "DISABLED", Releases::Catalog.view["state"]
@@ -107,7 +108,7 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     assert_equal good, Releases::Catalog.view["candidate"]["release_id"]
     # The fixture signature object was not the retained deep JSON copy.
     @metadata["signature"] = @release_fixture["signature"] = signed(@metadata["manifest"], @release_signer)
-    @metadata["version"] = "2.0.0-alpha.3"
+    @metadata["version"] = "2.0.0-alpha.99"
     Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
     Releases::Catalog.refresh!(source: @source)
     assert_equal good, Releases::Catalog.view["candidate"]["release_id"]
@@ -120,7 +121,7 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_includes response.body, "Update blocked by host or backup requirements"
     assert_select 'input[type="submit"][value="Update Railpress and Theme"]', count: 0
-    assert_includes response.body, "2.0.0-alpha.1"
+    assert_includes response.body, Railpress::Product::VERSION
     assert_includes response.body, "dusk 1.0.0"
     assert_includes response.body, "server's IP"
     assert_empty ReleaseRequest.all
@@ -154,9 +155,54 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
       assert_response :forbidden
       post "/admin/updates/combined", params: { authenticity_token: token, release_id: "a" * 64, request_id: SecureRandom.uuid }
       assert_response :forbidden
+      post "/admin/updates/check-now", params: { authenticity_token: token }
+      assert_response :forbidden
     end
     refute Releases::Catalog.settings["enabled"]
     assert_empty ReleaseRequest.all
+  end
+
+  test "the carrying Core release offers Dusk even when Dusk is inactive" do
+    activate(stage("harbor"))
+    @release_now = Time.now
+    directory = File.join(@private_root, "synthetic-offered-dusk")
+    Railpress::DuskPackage.build(directory, root: Rails.root, signer: @signer)
+    candidate = Railpress::ThemePackage.load(directory, trusted_keys: Themes::Storage.trusted_keys)
+    @theme_contract << candidate.manifest.slice("id", "version").merge("digest" => candidate.digest)
+    version = Railpress::Product::VERSION
+    artifact = build_release(version: version, channel: "alpha", dusk: { bundle: candidate, minimum_core: version, notes: "Reviewed synthetic Dusk offer" })
+    base = "https://github.com/Seggellion/RailpressV2/releases/download/v#{version}"
+    @metadata.replace({ "manifest" => artifact.fetch("manifest"), "signature" => artifact.fetch("signature"),
+      "version" => version, "package_url" => "#{base}/package.tar.gz", "plan_url" => "#{base}/native-plan.json",
+      "dusk_metadata" => artifact.fetch("dusk-update.json") })
+
+    refresh
+    assert_nil Releases::Catalog.view["candidate"]
+    assert_equal "AVAILABLE", Releases::DuskStatus.call[:state]
+    assert_equal candidate.digest, Releases::DuskStatus.call.dig(:offered, "digest")
+    assert_equal "harbor", ThemeState.first.active_installation.theme_key
+    sign_in
+    get "/admin/themes"
+    assert_response :ok
+    assert_includes response.body, "A verified Dusk update is available"
+    assert_includes response.body, "A different theme is active"
+
+    @metadata["dusk_metadata"] += " "
+    refresh
+    assert_equal "NO_VERIFIED_OFFER", Releases::DuskStatus.call[:state]
+  end
+
+  test "manual check requires CSRF and opt-in and cannot queue repeatedly" do
+    sign_in
+    token = csrf_token_for(self, "/admin/updates")
+    post "/admin/updates/check-now"
+    assert_response :unprocessable_entity
+    refute Releases::Catalog.request_refresh!(actor: @owner)
+    refresh
+    post "/admin/updates/check-now", params: { authenticity_token: token }
+    assert_response :see_other
+    assert_equal "CHECKING", Releases::DuskStatus.call[:state]
+    refute Releases::Catalog.request_refresh!(actor: @owner)
   end
   test "release parser ignores main drafts unsigned archives and unexpected destinations" do
     client = Releases::GithubSource.new
@@ -208,7 +254,7 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
       assert_empty Releases::Catalog.verified_items
       assert_nil Releases::Catalog.view["candidate"]
       Releases::Catalog.configure!(actor: @owner, enabled: true, channel: "alpha")
-      assert_equal "2.0.0-alpha.2", Releases::Catalog.view["candidate"]["version"]
+      assert_equal @metadata["version"], Releases::Catalog.view["candidate"]["version"]
       @metadata["manifest"]["sequence"] = 2
       @metadata["signature"] = signed(@metadata["manifest"], @release_signer)
       Releases::Catalog.refresh!(source: @source)

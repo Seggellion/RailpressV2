@@ -112,6 +112,7 @@ module Railpress
 end
 require_relative "releases/filesystem"
 require_relative "releases/manifest"
+require_relative "releases/dusk_offer"
 require_relative "releases/replay_state"
 require_relative "releases/journal"
 require_relative "releases/authority"

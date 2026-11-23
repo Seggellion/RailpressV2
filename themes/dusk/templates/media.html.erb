@@ -1,1 +1,3 @@
-<% if theme.content %><div class="dusk-featured"><%= theme.content.featured_html %></div><% end %>
+<% if theme.content && !theme.content.featured_html.empty? %>
+  <div class="dusk-featured"><%= theme.content.featured_html %></div>
+<% end %>

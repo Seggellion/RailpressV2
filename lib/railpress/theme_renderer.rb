@@ -1,4 +1,5 @@
 require "action_view"
+require "active_support/inflector"
 require "nokogiri"
 require "uri"
 require_relative "theme_package"
@@ -28,6 +29,24 @@ module Railpress
         "/theme-assets/#{@bundle.manifest.fetch('id')}/#{@bundle.manifest.fetch('version')}/#{@bundle.digest}/#{asset.fetch('file').delete_prefix('assets/')}"
       end
       def theme_artwork? = @bundle.manifest.fetch("options").key?("artwork_styles") && theme.options.fetch("artwork_style", "editorial") == "editorial"
+      def theme_body_with_section_ids
+        body = Nokogiri::HTML5.fragment(theme.content.body_html)
+        reserved = body.css("[id]").to_h { |element| [ element["id"], true ] }
+        body.css("h2, h3").each do |heading|
+          label = ActiveSupport::Inflector.parameterize(heading.text)[0, 70]
+          next if label.empty?
+          base = "section-#{label}"
+          id = base
+          offset = 1
+          while reserved[id]
+            offset += 1
+            id = "#{base}-#{offset}"
+          end
+          reserved[id] = true
+          heading["id"] = id
+        end
+        body.to_html.html_safe
+      end
       def theme_picture(name, loading: "lazy", sizes: "100vw")
         raise Invalid, "picture_options" unless name.to_s.match?(/\A[a-z_]{1,20}\z/) && %w[lazy eager].include?(loading)
         source = [ 360, 768, 1024 ].map { |width| "#{theme_asset_url("#{name}_#{width}")} #{width}w" }.join(", ")

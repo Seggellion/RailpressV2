@@ -10,6 +10,7 @@ module Releases
     ENDPOINT = "https://api.github.com/repos/#{REPOSITORY}/releases?per_page=20"
     HOSTS = %w[api.github.com github.com release-assets.githubusercontent.com].freeze
     NAMES = %w[manifest.json signature.json package.tar.gz native-plan.json].freeze
+    DUSK_ASSET = Railpress::Releases::DuskOffer::ASSET_NAME
     class Failure < StandardError; end
     def initialize(resolver: ->(host) { Resolv.getaddresses(host) }, cert_store: nil)
       @resolver, @cert_store = resolver, cert_store
@@ -65,7 +66,7 @@ module Releases
         next unless row["prerelease"] == version.split("+").first.include?("-")
         assets = row["assets"]
         next unless assets.is_a?(Array) && assets.length <= 64
-        chosen = NAMES.to_h do |name|
+        chosen = (NAMES + [ DUSK_ASSET ]).to_h do |name|
           found = assets.select { |asset| asset.is_a?(Hash) && asset["name"] == name && asset["state"] == "uploaded" }
           next [ name, nil ] unless found.length == 1
           asset = found.first
@@ -73,16 +74,29 @@ module Releases
           next [ name, nil ] unless asset["browser_download_url"] == expected && asset["size"].is_a?(Integer) && asset["size"].positive?
           [ name, { "url" => expected, "size" => asset["size"] } ]
         end
-        next if chosen.values.any?(&:nil?)
+        next if NAMES.any? { |name| chosen[name].nil? }
         next if chosen["manifest.json"]["size"] > 1024 * 1024 || chosen["signature.json"]["size"] > 4096 || chosen["native-plan.json"]["size"] > 65_536 || chosen["package.tar.gz"]["size"] > Railpress::Releases::Manifest::MAX_PACKAGE
+        if chosen[DUSK_ASSET].nil? || chosen[DUSK_ASSET]["size"] > Railpress::Releases::DuskOffer::LIMIT
+          chosen.delete(DUSK_ASSET)
+        end
         { "version" => version, "tag" => tag, "assets" => chosen }
       end.sort { |a, b| -Railpress::Releases.compare_versions(a["version"], b["version"]) }.first(5)
     end
     def metadata(row)
-      { "manifest" => Railpress::Releases.parse(get(row.fetch("assets").fetch("manifest.json").fetch("url"), limit: 1024 * 1024)),
+      result = { "manifest" => Railpress::Releases.parse(get(row.fetch("assets").fetch("manifest.json").fetch("url"), limit: 1024 * 1024)),
         "signature" => Railpress::Releases.parse(get(row.fetch("assets").fetch("signature.json").fetch("url"), limit: 4096)),
         "version" => row.fetch("version"), "package_url" => row.fetch("assets").fetch("package.tar.gz").fetch("url"),
         "plan_url" => row.fetch("assets").fetch("native-plan.json").fetch("url") }
+      sidecar = row.fetch("assets")[DUSK_ASSET]
+      if sidecar && result.dig("manifest", "files", Railpress::Releases::DuskOffer::INVENTORY_PATH)
+        begin
+          data = get(sidecar.fetch("url"), limit: Railpress::Releases::DuskOffer::LIMIT).dup.force_encoding(Encoding::UTF_8)
+          result["dusk_metadata"] = data if data.valid_encoding? && data.bytesize == sidecar["size"]
+        rescue Failure
+          # Retain the independent Core result and expose missing theme evidence.
+        end
+      end
+      result
     end
   end
 end

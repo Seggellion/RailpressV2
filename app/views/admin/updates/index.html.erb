@@ -10,6 +10,7 @@
   <% end %>
   <p role="status"><strong><%= @catalog["notice"] %></strong> · <%= @catalog["state"] %></p>
   <p><%= @catalog["detail"] %></p>
+  <% if @check_settings["enabled"] %><%= button_to "Check now", admin_updates_check_now_path, method: :post %><% end %>
   <% if (candidate = @catalog["candidate"]) %>
     <p>Latest signed candidate: <%= candidate["version"] %> · <%= candidate["manifest"]["channel"] %>. Installation still requires independent UTC and package/host verification.</p>
     <h3>Changelog and compatibility notices</h3><p><%= candidate["manifest"]["changelog"] %></p>
@@ -30,6 +31,7 @@
 <p>Installed Railpress <strong><%= Railpress::Product::VERSION %></strong> · <%= Railpress::Product::CHANNEL %> channel. This identity comes from running code.</p>
 <p>Rails <%= Rails.version %> · Ruby <%= RUBY_VERSION %> · Theme API <%= Railpress::Product::THEME_API %> · Security-clock contract <%= Railpress::Product::SECURITY_CLOCK %>.</p>
 <p>Active theme: <%= @theme ? "#{@theme.theme_key} #{@theme.version} · #{@theme.digest}" : "No validated package selected" %>. Staging preserves installed themes, overlays, menus and persistent media.</p>
+<%= render "admin/updates/dusk_status", status: @dusk_status %>
 <% if @local_theme_updates.any? %>
   <p role="status"><strong>Theme update available.</strong> Locally staged trusted packages: <%= @local_theme_updates.map { |theme| "#{theme.theme_key} #{theme.version}" }.join(", ") %>. Requires Core Theme API <%= Railpress::Product::THEME_API %>, provided by installed Railpress <%= Railpress::Product::VERSION %>. Preview and approve in <%= link_to "Appearance", admin_themes_path %>; no remote third-party availability is inferred.</p>
 <% else %>

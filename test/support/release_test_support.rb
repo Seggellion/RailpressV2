@@ -49,7 +49,7 @@ module ReleaseTestSupport
     { "algorithm" => "ed25519", "key_id" => Railpress::Releases.key_id(signer),
       "signature" => Base64.strict_encode64(signer.sign(nil, Railpress::Releases.canonical(value))) }
   end
-  def build_release(sequence: 1, version: "2.0.0-alpha.2", channel: "development")
+  def build_release(sequence: 1, version: "2.0.0-alpha.3", channel: "development", dusk: nil)
     files = Railpress::Releases::Manifest::REQUIRED.to_h do |name|
       bytes = name == "public/assets/.manifest.json" ? "{}" : File.binread(Rails.root.join(name))
       [ name, { "bytes" => bytes, "mode" => name.start_with?("bin/") ? 0o755 : 0o644 } ]
@@ -70,7 +70,7 @@ module ReleaseTestSupport
       "published_at" => @release_now.to_i - 60, "expires_at" => @release_now.to_i + 3600,
       "changelog" => "Synthetic development release; not a public distribution.",
       "provenance" => "Original MIT Railpress source and clearly labeled synthetic fixture assets; no private source records." }
-    Railpress::Releases::Builder.build(files: files, metadata: metadata, compatibility: compatibility, signer: @release_signer)
+    Railpress::Releases::Builder.build(files: files, metadata: metadata, compatibility: compatibility, signer: @release_signer, dusk: dusk)
   end
   def publish_fixture(fixture)
     path = File.join(@operator_root, "inbox", fixture.fetch("release_id"))

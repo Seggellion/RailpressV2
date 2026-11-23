@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "railpress/releases"
+
 module Installation
   module Environment
     module_function
@@ -13,7 +15,16 @@ module Installation
       raise Progress::Invalid, "The operator must provision private persistent theme storage." unless root && File.directory?(root)
       bundle = Railpress::ThemePackage.load(path, trusted_keys: Themes::Storage.trusted_keys)
       raise Progress::Invalid, "The default installation package must be Dusk." unless bundle.manifest["id"] == "dusk"
+      binding = Rails.root.join(Railpress::Releases::DuskOffer::INVENTORY_PATH)
+      if binding.exist? || binding.symlink?
+        raise Progress::Invalid, "The release Dusk binding is invalid." unless binding.file? && !binding.symlink?
+        expected = Railpress::Releases::DuskOffer.parse(File.binread(binding, Railpress::Releases::DuskOffer::LIMIT + 1))
+        actual = bundle.manifest.slice("id", "version", "theme_api").merge("digest" => bundle.digest)
+        raise Progress::Invalid, "The installer requires the exact Dusk package bound to this release." unless actual == expected.slice(*actual.keys)
+      end
       bundle
+    rescue Railpress::Releases::Invalid
+      raise Progress::Invalid, "The release Dusk binding is invalid."
     end
 
     def call

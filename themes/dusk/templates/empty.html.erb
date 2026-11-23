@@ -1,1 +1,21 @@
-<section class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="empty"><div class="dusk-wrap dusk-empty"><p class="dusk-kicker">Room for something new</p><h1><%= theme.archive_title == "Search" ? "Search" : theme.archive_title %></h1><% if theme.archive_title == "Search" %><form class="dusk-search" action="/search" method="get"><label for="dusk-query">Search this site</label><div class="dusk-search-fields"><input id="dusk-query" name="q" type="search" value="<%= theme.query %>"><button type="submit">Search</button></div></form><h2>No stories found</h2><p>Try another word or a shorter phrase.</p><% else %><p>No stories here yet. Please visit again.</p><% end %><a class="dusk-text-link" href="<%= theme.site.home_url %>">Return home <span aria-hidden="true">↗</span></a></div></section>
+<section class="dusk-shell dusk-palette-<%= theme.options.fetch("palette", "afterglow") %> dusk-font-<%= theme.options.fetch("font", "system_serif") %> dusk-layout-<%= theme.options.fetch("layout", "studio") %>" data-dusk-family="empty">
+  <div class="dusk-wrap dusk-empty">
+    <h1><%= theme.archive_title %></h1>
+    <% if theme.archive_title == "Search" %>
+      <form class="dusk-search" action="<%= theme.site.search_url %>" method="get">
+        <label for="dusk-query">Search this site</label>
+        <div class="dusk-search-fields">
+          <input id="dusk-query" name="q" type="search" value="<%= theme.query %>">
+          <button type="submit">Search</button>
+        </div>
+      </form>
+      <% unless theme.query.empty? %>
+        <h2>No results for “<%= theme.query %>”</h2>
+        <p>Try a shorter phrase or a different search term.</p>
+      <% end %>
+    <% else %>
+      <p class="dusk-lede">There are no published posts to show here yet.</p>
+    <% end %>
+    <a class="dusk-text-link" href="<%= theme.site.home_url %>">Return home <span aria-hidden="true">↗</span></a>
+  </div>
+</section>

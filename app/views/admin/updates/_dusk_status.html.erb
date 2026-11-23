@@ -1,0 +1,19 @@
+<section aria-labelledby="dusk-update-status">
+  <h2 id="dusk-update-status">Dusk updates</h2>
+  <p role="status"><strong><%= status.fetch(:notice) %></strong></p>
+  <% if status[:installed].present? %>
+    <dl>
+      <dt>Installed</dt><dd><%= status[:installed].join(", ") %></dd>
+      <dt>Active Dusk</dt><dd><%= status[:active] || (status[:other_active] ? "A different theme is active" : "No theme selected") %></dd>
+      <dt>Bundled</dt><dd><%= status[:bundled] %></dd>
+      <% if (offer = status[:offered]) %>
+        <dt>Last verified offer</dt><dd><%= offer.fetch("version") %> · Theme API <%= offer.fetch("theme_api") %></dd>
+        <dt>Package SHA-256</dt><dd><code><%= offer.fetch("digest") %></code></dd>
+        <dt>Release notes</dt><dd><%= offer.fetch("notes") %></dd>
+      <% end %>
+      <dt>Last check attempt</dt><dd><%= status[:last_attempt] || "None recorded" %></dd>
+      <dt>Last successful catalog check</dt><dd><%= status[:last_success] || "None recorded" %></dd>
+    </dl>
+    <% if status[:state] == "STAGED" %><p><%= link_to "Preview an admitted package", admin_themes_path %></p><% end %>
+  <% end %>
+</section>
