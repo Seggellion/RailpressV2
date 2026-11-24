@@ -95,6 +95,47 @@ class SeoDiagnosticsTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordNotUnique) { Redirect.create!(source_path: row.source_path, target_content: item) }
     assert_raises(ActiveRecord::InvalidForeignKey) { row.update_columns(target_content_id: 999999999) }
   end
+  test "offline batches persist complete coverage beyond fifty public URLs" do
+    55.times { |index| public_content(slug: "offline-#{index}") }
+    run = Seo::Diagnostics.start!(actor: @owner)
+    Seo::Diagnostics.execute!(run.id)
+    assert_equal "running", run.reload.status
+    assert_equal 5, run.summary["checked"]
+    Seo::Diagnostics.execute!(run.id, 0)
+    assert_equal 5, run.reload.summary["checked"]
+    5.step(55, Seo::Diagnostics::BATCH_SIZE) { |position| Seo::Diagnostics.execute!(run.id, position) }
+    assert_equal "completed", run.reload.status, run.summary.inspect
+    assert_equal 56, run.summary["checked"]
+    assert_equal 56, run.diagnostic_targets.where.not(checked_at: nil).count
+    assert_empty run.summary["codes"]
+    assert_equal Array.new(12, [ run.id ]),
+      enqueued_jobs.select { |job| job[:job] == SeoDiagnosticJob }.map { |job| job[:args] }
+  end
+
+  test "HTTP checks cover all twenty eight public pages with single delivery per target" do
+    old = ENV["RAILPRESS_SEO_HTTP_ENABLED"]
+    ENV["RAILPRESS_SEO_HTTP_ENABLED"] = "1"
+    28.times { |index| change(draft("Page", slug: "http-#{index}"), "publish") }
+    run = Seo::Diagnostics.start!(actor: @owner, mode: "http")
+    seen = []
+    client = Object.new
+    client.define_singleton_method(:get) do |uri:, ip_address:|
+      seen << [ uri.to_s, ip_address ]
+      graph = JSON.generate("@graph" => [ { "@type" => "WebPage", "url" => uri.to_s } ])
+      html = %(<html><head><meta name="robots" content="index, follow"><link rel="canonical" href="#{uri}"><script type="application/ld+json">#{graph}</script></head></html>)
+      Seo::NetHttpClient::Response.new(status: 200, headers: { "content-type" => [ "text/html" ] }, body: html)
+    end
+    0.step(27, Seo::Diagnostics::BATCH_SIZE) do |position|
+      2.times { Seo::Diagnostics.execute!(run.id, position, client: client, resolver: ->(_) { [ "8.8.8.8" ] }) }
+    end
+    assert_equal "completed", run.reload.status, run.summary.inspect
+    assert_equal 28, run.summary["checked"]
+    assert_empty run.summary["codes"]
+    assert_equal run.diagnostic_targets.order(:position).pluck(:url), seen.map(&:first)
+    assert_equal [ "8.8.8.8" ], seen.map(&:last).uniq
+  ensure
+    ENV["RAILPRESS_SEO_HTTP_ENABLED"] = old
+  end
   test "explicit HTTP mode persists guarded response findings without real external requests" do
     old=ENV["RAILPRESS_SEO_HTTP_ENABLED"]
     ENV["RAILPRESS_SEO_HTTP_ENABLED"]="1"

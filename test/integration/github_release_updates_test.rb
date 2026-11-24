@@ -62,7 +62,7 @@ class GithubReleaseUpdatesTest < ActionDispatch::IntegrationTest
     File.write(ENV["RAILPRESS_NATIVE_PUBLIC_STATUS"], JSON.generate("statement" => statement, "signature" => signed(statement, @status_signer)), perm: 0o600)
   end
   test "product family and channels are independent and prereleases order numerically" do
-    assert_equal "2.0.0-alpha.2", Railpress::Product::VERSION
+    assert_equal "2.0.0-alpha.3", Railpress::Product::VERSION
     assert_equal "alpha", Railpress::Product::CHANNEL
     assert_operator Railpress::Releases.compare_versions("2.0.0-alpha.10", "2.0.0-alpha.2"), :>, 0
     assert_operator Railpress::Releases.compare_versions("2.0.0", "2.0.0-alpha.99"), :>, 0

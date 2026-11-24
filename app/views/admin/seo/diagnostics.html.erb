@@ -1,0 +1,23 @@
+<h1>SEO diagnostics</h1>
+<%= render "navigation" %>
+<p>Offline checks compare Core policy and the sitemap. HTTP checks also inspect live same-origin pages. Runs above the supported URL limits stop before checking any targets.</p>
+<%= form_with url: admin_seo_execute_path do |form| %>
+  <%= form.hidden_field :mode, value: "offline" %>
+  <%= form.submit "Queue offline check" %>
+<% end %>
+<% if ENV["RAILPRESS_SEO_HTTP_ENABLED"] == "1" %>
+  <%= form_with url: admin_seo_execute_path do |form| %>
+    <%= form.hidden_field :mode, value: "http" %>
+    <%= form.submit "Queue public HTTP check" %>
+  <% end %>
+<% else %>
+  <p>The operator has disabled HTTP diagnostics.</p>
+<% end %>
+<p>Limits per run are <%= Seo::Diagnostics::LIMITS.fetch("offline") %> URLs offline and <%= Seo::Diagnostics::LIMITS.fetch("http") %> over HTTP.</p>
+<h2>Recent runs</h2>
+<% if @runs.empty? %><p>Never checked.</p><% end %>
+<ul>
+  <% @runs.each do |run| %>
+    <li><%= link_to "Run #{run.id}", admin_seo_diagnostic_path(run) %> · <%= run.mode.upcase %> · <%= seo_run_status(run) %> · <%= run.created_at.iso8601 %></li>
+  <% end %>
+</ul>

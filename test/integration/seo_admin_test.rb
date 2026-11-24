@@ -24,6 +24,32 @@ class SeoAdminTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Not checked" if Seo::DiagnosticTarget.any?
     refute_includes response.body, "https://evil.invalid"
   end
+  test "SEO report screens and findings exports are capability guarded" do
+    public_content
+    run = Seo::Diagnostics.start!(actor: @owner)
+    Seo::Diagnostics.execute!(run.id)
+    routes = [ admin_seo_sitemap_path, admin_seo_indexability_path, admin_seo_diagnostics_path, admin_seo_diagnostic_path(run), admin_seo_diagnostic_path(run, format: :json) ]
+    sign_in(self, @editor)
+    routes.each do |path|
+      get path
+      assert_response :forbidden
+    end
+    sign_in(self, @owner)
+    routes.each do |path|
+      get path
+      assert_response :success
+    end
+    assert_equal [], JSON.parse(response.body)
+    get admin_seo_sitemap_path
+    assert_includes response.body, "Public modification dates in XML"
+    get admin_seo_diagnostic_path(run)
+    assert_includes response.body, "2 of 2 checked"
+    failed = Seo::Diagnostics.start!(actor: @owner)
+    failed.finish!("failed", failed.summary.merge("codes" => [ "queue_unavailable" ]))
+    get admin_seo_path
+    assert_select "a[href=?]", admin_seo_diagnostic_path(failed), text: "Failed"
+    assert_select "a[href=?]", admin_seo_diagnostic_path(run), text: run.reload.finished_at.iso8601
+  end
   test "metadata injection cannot promote private content through genuine editorial forms" do
     item=draft
     sign_in(self, @author)

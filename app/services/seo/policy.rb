@@ -2,7 +2,7 @@ module Seo
   class Policy
     SiteSnapshot = Data.define(:title, :canonical_origin, :organization_name, :home_mode, :homepage_content_id, :locale)
     attr_reader :site, :family, :canonical, :indexability, :title, :description, :data,
-      :content_id, :kind, :published_at, :modified_at, :author_name, :page
+      :content_id, :kind, :published_at, :modified_at, :social_image, :page
     def self.visible?(content)
       content&.publicly_visible?
     end
@@ -23,19 +23,19 @@ module Seo
       end
       @site = SiteSnapshot.new(**values)
       @family, @page = family, page
-      @data = content ? content.published_snapshot.to_h.deep_dup : {}
+      publicly_visible = self.class.visible?(content)
+      @data = publicly_visible ? content.published_snapshot.to_h.deep_dup : {}
       deep_freeze(@data)
       @content_id, @kind = content&.id, content&.type
       @published_at, @modified_at = content&.first_published_at, content&.public_updated_at
-      @author_name = content && User.find_by(id: content.author_id)&.username
-      visible = !%i[page post].include?(family) || self.class.visible?(content)
+      visible = !%i[page post].include?(family) || publicly_visible
       @indexability = self.class.decision(site: site, family: family, visible: visible, nonempty: nonempty, query: query)
       @indexability = Indexability.noindex(reason: "theme_preview") if preview
       @canonical = !preview && path && family != :not_found && visible ? CanonicalUrl.new(origin: site.canonical_origin).call(path, query: canonical_query(query)) : nil
       @title = [ data["meta_title"].presence || data["title"].presence || title.presence || site.title, site.title ].uniq.join(" · ").freeze
-      @description = (data["meta_description"].presence || data["excerpt"].presence || site.tagline).to_s.freeze
+      @description = (data["meta_description"].presence || data["excerpt"].presence || body_summary || site.tagline).to_s.freeze
+      @social_image = Seo::SocialImage.call(content: content, snapshot: data, origin: site.canonical_origin) if @canonical && publicly_visible
       @canonical&.freeze
-      @author_name = @author_name&.dup&.freeze
       @kind = @kind&.dup&.freeze
       @published_at = @published_at&.dup&.freeze
       @modified_at = @modified_at&.dup&.freeze
@@ -43,6 +43,11 @@ module Seo
     end
     def robots = indexability.robots
     private
+    def body_summary
+      plain = ApplicationController.helpers.strip_tags(data["body"].to_s).squish
+      plain.presence&.truncate(160, separator: /\s/)
+    end
+
     def canonical_query(query)
       result = {}
       result["q"] = query["q"].to_s if family == :search && query["q"].present?

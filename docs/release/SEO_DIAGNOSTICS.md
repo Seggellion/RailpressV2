@@ -1,0 +1,11 @@
+# SEO diagnostics
+
+SEO in the Railpress Admin has four screens. Overview shows the configured origin and indexing switches, latest run, and last clean result. Sitemap compares the canonical inventory against actual XML, including missing, unexpected and duplicate URLs and public modification dates. Indexability shows eligible route families and content excluded by publication state or site policy. Diagnostics records progress and findings. Open a run to review its targets or download a bounded JSON findings export.
+
+The worker checks all targets in accepted runs of up to 250 offline URLs or 120 HTTP URLs. One site run is active at a time. Sequential jobs check up to five URLs per batch and persist results and progress between jobs. The HTTP worker allows eight seconds per target, including redirects, uses the existing response limits, and ends a run that exceeds its 20-minute window. A run with no progress for 10 minutes is marked stalled. Starting a replacement preserves the previous run and its completed results.
+
+HTTP checks are opt-in through `RAILPRESS_SEO_HTTP_ENABLED=1`. The worker uses only canonical HTTPS inventory URLs, verifies certificates and DNS destinations, and rechecks each redirect against the same inventory. Public requests and publishing run independently of diagnostics. Rails uses the configured cache. The default MemoryStore is per process, with durable database generation invalidation and a 60-second bound. Cache failures fall back to regenerating from the public database policy.
+
+Core renders metadata under every supported theme. Social-card images require an accessible image from the live snapshot and a matching live media reference. Structured data uses the configured public organization as publisher when present. A staff sign-in name is never a public byline. Search Console setup uses the authenticated interface and a verified property independently of these checks.
+
+The Overview, Sitemap, Indexability, Diagnostics structure and separate latest and last clean results adapt ideas reviewed in the original CMS SEO observability work. The existing SEO provenance in THIRD_PARTY_NOTICES.md applies to the shared components. Rails cache, authorization, routes, data and diagnostic jobs are Railpress implementations.

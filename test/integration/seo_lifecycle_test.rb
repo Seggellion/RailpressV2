@@ -91,6 +91,30 @@ class SeoLifecycleTest < ActionDispatch::IntegrationTest
     assert_empty observed_head["schema"]
     assert_equal "no-store", response.headers["Cache-Control"]
   end
+  test "social cards use approved live image variants and omit staff sign-in identity" do
+    approved = upload_media(alt_text: "Approved image alternative")
+    private_edit = upload_media(alt_text: "Private image alternative")
+    item = public_content(slug: "social-card", featured_media_id: approved.id, excerpt: "", body: "<p>Public text for this story.</p>")
+    change(item, attributes: { featured_media_id: private_edit.id, body: "<p>Private working text</p>" }, actor: @author)
+    get "/blog/social-card"
+    assert_response :success
+    head = Nokogiri::HTML(response.body).at_css("head")
+    url = "#{site.canonical_origin}/media/#{item.id}/#{approved.public_id}/display"
+    assert_equal url, head.at_css('meta[property="og:image"]')["content"]
+    assert_equal url, head.at_css('meta[name="twitter:image"]')["content"]
+    assert_equal "Approved image alternative", head.at_css('meta[name="twitter:image:alt"]')["content"]
+    assert_equal "Public text for this story.", head.at_css('meta[name="description"]')["content"]
+    article = JSON.parse(head.at_css('script[type="application/ld+json"]').text).fetch("@graph").find { |node| node["@type"] == "BlogPosting" }
+    assert_equal url, article["image"]
+    refute article.key?("author")
+    refute_includes head.text, @author.username
+    refute_includes head.to_html, private_edit.public_id
+    get URI.parse(url).path
+    assert_response :success
+    change(item, "unpublish")
+    get URI.parse(url).path
+    assert_response :not_found
+  end
   test "global visibility and staging switch win over metadata and cached sitemap" do
     item=public_content
     assert_includes sitemap_urls, site.canonical_origin+"/blog/#{item.slug}"

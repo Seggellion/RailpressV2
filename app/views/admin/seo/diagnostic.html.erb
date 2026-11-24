@@ -1,0 +1,30 @@
+<h1>SEO diagnostic run <%= @run.id %></h1>
+<%= render "navigation" %>
+<dl>
+  <dt>Status</dt><dd><%= seo_run_status(@run) %></dd>
+  <dt>Mode</dt><dd><%= @run.mode.upcase %></dd>
+  <dt>Progress</dt><dd><%= @run.summary.fetch("checked", 0) %> of <%= @run.summary.fetch("inventory_count", 0) %> checked</dd>
+  <dt>Policy generation</dt><dd><%= @run.generation %> (current <%= @site.seo_generation %>)</dd>
+</dl>
+<% if seo_run_status(@run) == "Stalled" %><p><%= link_to "Check the worker", admin_readiness_path %> and queue a replacement when ready.</p><% end %>
+<% if @run.summary.fetch("codes", []).any? %>
+  <h2>Findings and next steps</h2>
+  <ul>
+    <% @run.summary.fetch("codes", []).each do |code| %>
+      <li><%= code.humanize %><% if (action = seo_finding_action(code)) %> · <%= action %><% end %></li>
+    <% end %>
+  </ul>
+<% end %>
+<p><%= link_to "Download target findings (JSON)", admin_seo_diagnostic_path(@run, format: :json) %></p>
+<% if @targets.any? %>
+  <h2>Targets</h2>
+  <ul>
+    <% @targets.each do |target| %>
+      <li><%= target.url %> · <%= target.checked_at ? target.result.fetch("codes", []).map(&:humanize).join(", ").presence || "Clean" : "Not checked" %></li>
+    <% end %>
+  </ul>
+<% end %>
+<p>
+  <% if @page > 1 %><%= link_to "Previous targets", admin_seo_diagnostic_path(@run, page: @page - 1) %><% end %>
+  <% if @page * 25 < @run.summary.fetch("inventory_count", 0) && @targets.size == 25 %><%= link_to "Next targets", admin_seo_diagnostic_path(@run, page: @page + 1) %><% end %>
+</p>

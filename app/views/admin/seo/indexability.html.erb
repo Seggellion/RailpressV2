@@ -1,0 +1,24 @@
+<h1>Indexability</h1>
+<%= render "navigation" %>
+<p>Content and site policy determine indexing. <%= link_to "Review site identity and indexing settings", admin_settings_path %>.</p>
+<h2>Eligible canonical URLs</h2>
+<% if @eligible.empty? %><p>No eligible URLs under the current policy.</p><% end %>
+<dl>
+  <% @eligible.each do |family, count| %><dt><%= family.humanize %></dt><dd><%= count %></dd><% end %>
+</dl>
+<h2>Excluded</h2>
+<dl>
+  <% @excluded.sort.each do |(status, visibility), count| %>
+    <dt><%= status.humanize %> · <%= visibility.humanize %> content</dt><dd><%= count %></dd>
+  <% end %>
+  <% if @public_excluded.positive? %><dt>Public content held by <%= @policy.reason.humanize.downcase %></dt><dd><%= @public_excluded %></dd><% end %>
+</dl>
+<p>Search, tracking variants, previews and protected Admin routes stay outside the sitemap.</p>
+<% if @redirects.any? %>
+  <h2>Recent historical paths</h2>
+  <ul>
+    <% @redirects.each do |item| %>
+      <li><%= item.source_path %> → <%= item.target_content_id ? link_to("Review content", edit_admin_content_path(item.target_content_id)) : "Removed" %></li>
+    <% end %>
+  </ul>
+<% end %>

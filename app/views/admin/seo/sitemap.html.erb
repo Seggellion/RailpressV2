@@ -1,0 +1,17 @@
+<h1>Sitemap</h1>
+<%= render "navigation" %>
+<p><%= link_to "Open the public XML", "/sitemap.xml" %> · <%= link_to "Open robots.txt", "/robots.txt" %></p>
+<dl>
+  <dt>Eligible canonical URLs</dt><dd><%= @report.entries.size %></dd>
+  <dt>Rendered XML URLs</dt><dd><%= @report.rendered_count %></dd>
+  <dt>Missing URLs</dt><dd><%= @report.missing_count %></dd>
+  <dt>Unexpected URLs</dt><dd><%= @report.unexpected_count %></dd>
+  <dt>Duplicate URLs</dt><dd><%= @report.duplicate_count %></dd>
+  <dt>Public modification dates in XML</dt><dd><%= @report.lastmod_count %> of <%= @report.rendered_count %></dd>
+  <dt>Modification dates different from inventory</dt><dd><%= @report.lastmod_mismatches %></dd>
+  <dt>Cache backend</dt><dd><%= Rails.cache.class.name %></dd>
+  <dt>Cache scope</dt><dd><%= seo_cache_scope(Rails.cache) %></dd>
+  <dt>Cache generation</dt><dd><%= @site.seo_generation %></dd>
+  <dt>Generated</dt><dd><%= @report.payload.generated_at.iso8601 %> (<%= distance_of_time_in_words(@report.payload.generated_at, Time.current, include_seconds: true) %> ago)</dd>
+</dl>
+<% if @report.codes.any? %><p>Rendered XML differs from the current public inventory. Check the underlying publication and cache state.</p><% end %>

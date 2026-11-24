@@ -19,7 +19,7 @@ class AdminExperienceTest < ActionDispatch::IntegrationTest
           assert_equal "no-store", response.headers["Cache-Control"]
           assert_includes response.headers["X-Robots-Tag"], "noindex"
           assert_select 'nav[aria-label="Administration"]', count: 1
-          assert_select 'a[aria-current="page"]', count: 1
+          assert_select 'nav[aria-label="Administration"] a[aria-current="page"]', count: 1
           assert_select 'script[src*="admin_shell"]', count: 1
           assert_select "script:not([src])", count: 0
           assert_select "h1", count: 1

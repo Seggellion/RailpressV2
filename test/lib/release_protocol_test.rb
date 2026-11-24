@@ -72,7 +72,7 @@ class ReleaseProtocolTest < ActiveSupport::TestCase
     prepare_release(id)
     receipt = @operator.stage(request_id: id, release_id: @release_fixture["release_id"])
     assert_equal "manifest_replay", receipt["statement"]["error"]
-    fresh = build_release(sequence: 2, version: "2.0.0-alpha.3")
+    fresh = build_release(sequence: 2, version: "2.0.0-alpha.5")
     publish_fixture(fresh)
     assert_equal "STAGED", stage_release(SecureRandom.uuid, fresh)["statement"]["state"]
   end

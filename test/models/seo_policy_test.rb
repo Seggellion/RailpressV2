@@ -43,6 +43,19 @@ class SeoPolicyTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid) { Redirect.create!(source_path: "//evil.invalid", target_content: item) }
     assert_raises(ActiveRecord::RecordInvalid) { Redirect.create!(source_path: "/admin", target_content: item) }
   end
+  test "sitemap comparison detects missing, duplicate and wrong public modification dates" do
+    public_content
+    entries = Seo::UrlInventory.call(site: site)
+    first = entries.first
+    stale = first.with(last_modified: first.last_modified - 1.day)
+    xml = Seo::SitemapRenderer.new.call([ stale, stale ])
+    payload = Seo::SitemapCache.fetch(site: site).with(xml: xml)
+    report = Seo::SitemapReport.new(site: site, entries: entries, payload: payload)
+    assert_equal 1, report.missing_count
+    assert_equal 1, report.duplicate_count
+    assert_equal 2, report.lastmod_mismatches
+    assert_equal %w[sitemap_inventory_mismatch sitemap_lastmod_mismatch], report.codes
+  end
   test "site term origin and homepage changes advance durable invalidation" do
     item=public_content
     before=site.seo_generation

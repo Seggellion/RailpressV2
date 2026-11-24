@@ -1,6 +1,6 @@
 # Railpress 2.0 versions
 
-Railpress Core uses Semantic Versioning. `lib/railpress/product.json` is the sole running product-version authority. The Dusk campaign source identifies **2.0.0-alpha.2**, channel **alpha**. Product constants, native `bin/railpress --version`, doctor, installer environment and dashboard derive from it. Release packages must contain the same identity as their signed manifest. A main-branch commit is source, never an installation update.
+Railpress Core uses Semantic Versioning. `lib/railpress/product.json` is the sole running product-version authority. The SEO update source identifies **2.0.0-alpha.3**, channel **alpha**. Product constants, native `bin/railpress --version`, doctor, installer environment and dashboard derive from it. Release packages must contain the same identity as their signed manifest. A main-branch commit is source, never an installation update.
 
 Alpha previews advance alpha.2, alpha.3, etc.; prerelease numeric identifiers compare numerically. Stable 2.0.0 requires separate stable qualification and signing approval. Stable checks exclude prereleases; alpha checks accept alpha and stable releases. Legacy development metadata remains supported for historical synthetic fixtures only, never a public alpha feed candidate.
 

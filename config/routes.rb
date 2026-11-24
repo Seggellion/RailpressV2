@@ -85,6 +85,10 @@ Rails.application.routes.draw do
     post "updates/check-now" => "updates#check_now", as: :updates_check_now
     post "updates/combined" => "updates#combined", as: :updates_combined
     get "seo" => "seo#show", as: :seo
+    get "seo/sitemap" => "seo#sitemap", as: :seo_sitemap
+    get "seo/indexability" => "seo#indexability", as: :seo_indexability
+    get "seo/diagnostics" => "seo#diagnostics", as: :seo_diagnostics
+    get "seo/diagnostics/:id" => "seo#diagnostic", as: :seo_diagnostic, constraints: { id: /\d+/ }
     post "seo/execute" => "seo#execute", as: :seo_execute
   end
   get "admin/media_assets/:id/file" => "media_files#private_file", as: :private_media_file

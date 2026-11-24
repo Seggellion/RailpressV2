@@ -1,0 +1,7 @@
+<nav aria-label="SEO">
+  <ul>
+    <% { "Overview" => admin_seo_path, "Sitemap" => admin_seo_sitemap_path, "Indexability" => admin_seo_indexability_path, "Diagnostics" => admin_seo_diagnostics_path }.each do |label, path| %>
+      <li><%= link_to label, path, aria: { current: current_page?(path) ? "page" : nil } %></li>
+    <% end %>
+  </ul>
+</nav>

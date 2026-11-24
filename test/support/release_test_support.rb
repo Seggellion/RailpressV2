@@ -49,7 +49,7 @@ module ReleaseTestSupport
     { "algorithm" => "ed25519", "key_id" => Railpress::Releases.key_id(signer),
       "signature" => Base64.strict_encode64(signer.sign(nil, Railpress::Releases.canonical(value))) }
   end
-  def build_release(sequence: 1, version: "2.0.0-alpha.3", channel: "development", dusk: nil)
+  def build_release(sequence: 1, version: "2.0.0-alpha.4", channel: "development", dusk: nil)
     files = Railpress::Releases::Manifest::REQUIRED.to_h do |name|
       bytes = name == "public/assets/.manifest.json" ? "{}" : File.binread(Rails.root.join(name))
       [ name, { "bytes" => bytes, "mode" => name.start_with?("bin/") ? 0o755 : 0o644 } ]

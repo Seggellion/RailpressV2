@@ -11,6 +11,7 @@ This generic candidate document does not copy the private official-site editoria
 | Separate Member email/Discord verification | BETA implementation; live providers NOT TESTED | Core-owned installer/Accounts, no staff elevation, bounded proofs/state/PKCE; live SMTP/Discord and amended release gates remain separate |
 | Privacy-first anonymous browsing | BETA implementation; accepted A06-R1 CONDITIONAL | PostgreSQL SQL-restore integrity correction and independent full regressions/production-mode HTTPS pass; Chrome/runtime, clock/worker, legal/host-log gates remain open. No GDPR exemption claim |
 | Tool-neutral developer Harness | A07 implementation; exact provider scope in docs/harness/COMPATIBILITY.md | Read-only doctor/plan/report, explicit reviewed scaffold, guarded native verification, no automatic AI/source transfer or production authority |
+| Core SEO and Admin diagnostics | SEO-PUBLIC candidate for 2.0.0-alpha.3 | Public media cards, sitemap comparison, policy and queue visibility, bounded full-inventory validation. [Operator guide](../release/SEO_DIAGNOSTICS.md) |
 | Independent core/private-site integration | A08 local contracts and combined test fixtures | Exact snapshot/package pins, ordinary M15 reconstruction and conflict checks; qualification remains scoped to current evidence. Chrome/provider/native admission gates stay explicit |
 | Public release and production admission | BLOCKED/NOT AVAILABLE | M05/M08historical conditions and M16/A09/M17host/time/backup/rights/approval gates remain open |
 
