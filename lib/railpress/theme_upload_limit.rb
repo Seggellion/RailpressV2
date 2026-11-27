@@ -12,7 +12,9 @@ module Railpress
     end
 
     def call(env)
-      return @app.call(env) unless env["PATH_INFO"] == PATH && env["REQUEST_METHOD"] == "POST"
+      return @app.call(env) unless env["REQUEST_METHOD"] == "POST"
+      path = ActionDispatch::Journey::Router::Utils.normalize_path(env["PATH_INFO"])
+      return @app.call(env) unless path == PATH || path.start_with?("#{PATH}.")
       declared = env["CONTENT_LENGTH"].to_s
       return reject(400) unless declared.empty? || declared.match?(/\A[0-9]{1,20}\z/)
       return reject(413) if declared.to_i > MAX_BYTES

@@ -175,6 +175,33 @@ class ExtensionInstallationTest < ActionDispatch::IntegrationTest
     assert_equal 1, record_count
   end
 
+  test "activation can stale a waiting request but cannot race a verified module operation" do
+    installed, = stage_package(version: "1.0.0")
+    current = load_extension_set([ installed ])
+    entry = current.entries.fetch(MODULE_ID)
+    row = ExtensionInstallation.create!(site: @extension_site, module_id: MODULE_ID, enabled: true,
+      package_state: "installed", version: entry.version, package_sha256: entry.package_sha256,
+      manifest_sha256: entry.manifest.digest, activation_generation: 1, engine_generation: current.generation,
+      engine_fingerprint: current.fingerprint, module_schema: 1, job_revision: 1)
+    newer, = stage_package(version: "1.1.0", migration_count: 2)
+    candidate = load_extension_set([ newer ], previous: current)
+    upgrade = candidate.entries.fetch(MODULE_ID)
+
+    stale = submit(upgrade, previous: current, activation: 1, operation: "upgrade")
+    refute change_activation(current, false, 1).enabled
+    assert_invalid("extension_activation_stale") { accept(stale, candidate, "verifying", 1) }
+    assert_equal [ "awaiting_operator", 0 ], stale.reload.attributes.values_at("state", "receipt_sequence")
+    assert_empty ExtensionMigrationRecord.all
+    Extensions::Requests.cancel!(actor: @owner, request_key: stale.request_key)
+
+    request = submit(upgrade, previous: current, activation: 2, operation: "upgrade")
+    assert_equal "verifying", accept(request, candidate, "verifying", 1).state
+    assert_invalid("extension_activation_in_progress") { change_activation(current, true, 2) }
+    assert_equal [ false, 2 ], row.reload.attributes.values_at("enabled", "activation_generation")
+    assert_equal "held", accept(request, current, "held", 2).state
+    assert change_activation(current, true, 2).enabled
+  end
+
   test "interrupted DDL and changed applied bytes require a recovery hold on the exact synthetic adapter" do
     row, = stage_package(version: "1.0.0")
     initial = load_extension_set([ row ])

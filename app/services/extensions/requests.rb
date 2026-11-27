@@ -5,6 +5,7 @@ module Extensions
     Platform = Railpress::Extensions
     Invalid = Platform::Invalid
     CORE_SWITCH_OPERATIONS = %w[promote revert].freeze
+    ACTIVE_OPERATOR_STATES = %w[verifying migrating restarting].freeze
     CORE_SWITCH_TERMINAL = %w[ACTIVE PREVIOUS_ACTIVE FAILED_STAGED].freeze
     TRANSITIONS = {
       "awaiting_operator" => %w[verifying held failed cancelled],
@@ -85,6 +86,10 @@ module Extensions
           finish!(site, request, statement, registry)
         else
           validate_progress_lock!(request, statement, registry)
+          if state == "verifying"
+            installation = ExtensionInstallation.lock.find_by(site: site, module_id: request.module_id)
+            validate_current_installation!(request, installation)
+          end
         end
         request.update!(state: state, receipt_sequence: sequence, receipt_sha256: receipt_sha,
           operator_receipt: Railpress::Releases.parse(envelope, limit: Platform::Trust::LIMIT))
@@ -184,8 +189,7 @@ module Extensions
       end
       verify_processes!(statement, registry)
       row = ExtensionInstallation.lock.find_or_initialize_by(site: site, module_id: request.module_id)
-      raise Invalid, "extension_activation_stale" unless (row.activation_generation || 0) == request.activation_generation
-      validate_operation!(request.attributes, row)
+      validate_current_installation!(request, row)
       state = request.operation == "uninstall" ? "retained" : "installed"
       raise Invalid, "extension_receipt_outcome" unless statement["state"] == state
       entry = registry.entries[request.module_id]
@@ -199,6 +203,13 @@ module Extensions
       row.update!(version: request.version, package_sha256: request.package_sha256, manifest_sha256: request.manifest_sha256,
         package_state: state, enabled: false, activation_generation: request.activation_generation + 1, engine_generation: registry.generation,
         engine_fingerprint: registry.fingerprint, module_schema: statement["module_schema"], job_revision: statement["job_revision"])
+    end
+
+    def validate_current_installation!(request, installation)
+      unless (installation&.activation_generation || 0) == request.activation_generation
+        raise Invalid, "extension_activation_stale"
+      end
+      validate_operation!(request.attributes, installation)
     end
 
     def verify_processes!(statement, registry)

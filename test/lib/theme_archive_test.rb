@@ -57,6 +57,17 @@ class ThemeArchiveTest < ActiveSupport::TestCase
     assert_equal [ "abc" ], reached
   end
 
+  test "multipart guard covers the path variants accepted by the Rails upload route" do
+    guard = Railpress::ThemeUploadLimit.new(->(_env) { [ 201, {}, [] ] })
+    %w[/admin/themes/uploads/ /admin//themes/uploads /admin/themes/uploads.zip].each do |path|
+      assert_equal "upload", Rails.application.routes.recognize_path(path, method: :post)[:action]
+      env = { "PATH_INFO" => path, "REQUEST_METHOD" => "POST",
+        "CONTENT_LENGTH" => (Railpress::ThemeUploadLimit::MAX_BYTES + 1).to_s, "rack.input" => StringIO.new }
+      assert_equal 413, guard.call(env).first, path
+    end
+    refute_equal 413, guard.call("PATH_INFO" => "/admin/themes/uploads/1/resume", "REQUEST_METHOD" => "POST").first
+  end
+
   private
 
   def assert_rejected(code, files, compress: false)

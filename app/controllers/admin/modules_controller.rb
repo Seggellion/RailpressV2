@@ -5,8 +5,11 @@ module Admin
     before_action -> { authorize!(:manage_modules) }
 
     rescue_from Railpress::Extensions::Invalid, ActionController::ParameterMissing do |error|
-      message = if error.message == "extension_route_collision"
+      message = case error.message
+      when "extension_route_collision"
         "A page or redirect uses this module's public path. Move it before enabling the module."
+      when "extension_activation_in_progress"
+        "The operator is processing this module. Reload Modules after the operation finishes."
       else
         "The module request could not be verified. Reload Modules and review the exact selection."
       end

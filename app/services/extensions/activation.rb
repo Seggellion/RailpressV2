@@ -25,6 +25,9 @@ module Extensions
         installation = ExtensionInstallation.lock.find_by!(site: site, module_id: module_id, package_state: "installed")
         raise Invalid, "extension_activation_stale" unless installation.activation_generation == generation
         return installation if installation.enabled == enabled
+        if ExtensionInstallRequest.exists?(site: site, module_id: module_id, state: Requests::ACTIVE_OPERATOR_STATES)
+          raise Invalid, "extension_activation_in_progress"
+        end
 
         if enabled
           raise Invalid, "extension_engine_not_running" unless same_selection?(installation, registry)
