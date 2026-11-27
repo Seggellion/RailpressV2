@@ -14,6 +14,9 @@ module Releases
           raise ArgumentError, "Request identity already belongs to another operation" unless existing.actor_id == fresh.id && existing.operation == operation && existing.release_digest == release_id
           return existing
         end
+        if Extensions::Requests::CORE_SWITCH_OPERATIONS.include?(operation) && Extensions::Requests.pending?(site)
+          raise ArgumentError, "A module operation is pending; ask the operator to reconcile it"
+        end
         raise ArgumentError, "Release request queue is full; ask the operator to reconcile it" if ReleaseRequest.where(site: site).count >= 64
         request = ReleaseRequest.create!(site: site, actor: fresh, actor_auth_version: fresh.auth_version,
           operation: operation, release_digest: release_id, request_key: request_id)

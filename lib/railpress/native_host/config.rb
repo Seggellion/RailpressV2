@@ -4,7 +4,7 @@ module Railpress
   module NativeHost
     class Config
       KEYS = %w[format deployment_id install_id registry_root engine database_instance_id environment_sha256 nginx_binary ruby_binary db_tools edge_port puma_ports scope max_snapshot_age_seconds dependency_hashes].freeze
-      ENVIRONMENT = %w[RAILS_ENV SECRET_KEY_BASE RAILPRESS_HTTPS_ORIGIN RAILPRESS_PRIVATE_STATE_ROOT RAILPRESS_STORAGE_ROOT RAILPRESS_THEME_ROOT RAILPRESS_RELEASE_PUBLIC_TRUST RAILPRESS_NATIVE_PUBLIC_STATUS RAILPRESS_NATIVE_PROBE_TOKEN RAILPRESS_TLS_PROXY_IPS RAILPRESS_DB_ADAPTER RAILPRESS_DB_HOST RAILPRESS_DB_PORT RAILPRESS_DB_NAME RAILPRESS_DB_USER RAILPRESS_DB_PASSWORD RAILPRESS_WEBP_DECODER RAILPRESS_MEMBERSHIP_CONFIG].freeze
+      ENVIRONMENT = %w[RAILS_ENV SECRET_KEY_BASE RAILPRESS_HTTPS_ORIGIN RAILPRESS_PRIVATE_STATE_ROOT RAILPRESS_STORAGE_ROOT RAILPRESS_THEME_ROOT RAILPRESS_RELEASE_PUBLIC_TRUST RAILPRESS_NATIVE_PUBLIC_STATUS RAILPRESS_NATIVE_PROBE_TOKEN RAILPRESS_TLS_PROXY_IPS RAILPRESS_DB_ADAPTER RAILPRESS_DB_HOST RAILPRESS_DB_PORT RAILPRESS_DB_NAME RAILPRESS_DB_USER RAILPRESS_DB_PASSWORD RAILPRESS_WEBP_DECODER RAILPRESS_MEMBERSHIP_CONFIG RAILPRESS_EXTENSION_ROOT RAILPRESS_EXTENSION_SITE RAILPRESS_EXTENSION_CORE_ANCHOR].freeze
       attr_reader :root, :data, :app_environment
       def initialize(root)
         @root = F.directory!(root, private: true)
@@ -47,6 +47,14 @@ module Railpress
           raise Error, "persistent_root" unless p.start_with?(path("shared") + "/")
           F.directory!(p, private: true)
         end
+        if app_environment.keys.any? { |key| key.start_with?("RAILPRESS_EXTENSION_") }
+          namespace = { "w03_bridge" => "w03", "w03_restore" => "w03", "w04_recruitment" => "w04", "w04_recruitment_final" => "w04" }[data["test_database_profile"]]
+          raise Error, "extension_native_scope" unless namespace && @root.start_with?("#{registry}/.local/state/#{namespace}/") &&
+            app_environment["RAILPRESS_EXTENSION_ROOT"] == path("shared", "engines") &&
+            app_environment["RAILPRESS_EXTENSION_SITE"] == data["install_id"] &&
+            Releases::SEMVER.match?(app_environment["RAILPRESS_EXTENSION_CORE_ANCHOR"].to_s)
+          F.directory!(path("shared", "engines"), private: true)
+        end
         @registry = registry
       rescue URI::InvalidURIError, KeyError, Errno::ENOENT, TypeError
         raise Error, "native_configuration"
@@ -81,7 +89,8 @@ module Railpress
         raise Error, "service_slot" unless [ 0, 1 ].include?(slot)
         release(id)
         profile_environment = data["test_database_profile"] ? { "RAILPRESS_NATIVE_TEST_PROFILE" => data["test_database_profile"] } : {}
-        app_environment.merge(profile_environment).merge("PATH" => File.dirname(data["ruby_binary"]) + ":/usr/bin:/bin",
+        libraries = ENV.slice("LD_LIBRARY_PATH", "GEM_PATH", "GEM_HOME") if %w[w03_bridge w03_restore w03_reference w04_recruitment w04_recruitment_final].include?(data["test_database_profile"])
+        app_environment.merge(profile_environment).merge(libraries || {}).merge("PATH" => File.dirname(data["ruby_binary"]) + ":/usr/bin:/bin",
           "HOME" => ENV.fetch("HOME"), "BUNDLE_GEMFILE" => path("releases", id, "Gemfile"),
           "DISABLE_BOOTSNAP" => "1", "RAILS_MAX_THREADS" => "5", "RAILS_LOG_LEVEL" => "warn",
           "RAILPRESS_DEPLOYMENT_DIGEST" => id, "RAILPRESS_DEPLOYMENT_ID" => data["deployment_id"],

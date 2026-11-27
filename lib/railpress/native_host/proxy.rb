@@ -54,16 +54,21 @@ module Railpress
                 alias #{root}/shared/assets/;
                 add_header Cache-Control "public, max-age=31536000, immutable";
               }
+              proxy_set_header Host localhost:#{port};
+              proxy_set_header X-Forwarded-Proto https;
+              proxy_set_header X-Forwarded-Host localhost:#{port};
+              proxy_set_header X-Forwarded-Port #{port};
+              proxy_set_header X-Forwarded-For $remote_addr;
+              proxy_set_header Forwarded "";
+              proxy_connect_timeout 2s;
+              proxy_read_timeout 5s;
+              proxy_send_timeout 5s;
+              location = /admin/themes/uploads {
+                client_max_body_size 5m;
+                proxy_request_buffering on;
+                #{location}
+              }
               location / {
-                proxy_set_header Host localhost:#{port};
-                proxy_set_header X-Forwarded-Proto https;
-                proxy_set_header X-Forwarded-Host localhost:#{port};
-                proxy_set_header X-Forwarded-Port #{port};
-                proxy_set_header X-Forwarded-For $remote_addr;
-                proxy_set_header Forwarded "";
-                proxy_connect_timeout 2s;
-                proxy_read_timeout 5s;
-                proxy_send_timeout 5s;
                 #{location}
               }
             }

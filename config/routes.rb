@@ -72,6 +72,8 @@ Rails.application.routes.draw do
     get "settings" => "settings#edit"
     patch "settings" => "settings#update"
     get "themes" => "themes#index"
+    post "themes/uploads" => "themes#upload", as: :theme_uploads
+    post "themes/uploads/:id/resume" => "themes#resume_upload", as: :resume_theme_upload
     post "themes/revert" => "themes#revert", as: :themes_revert
     post "themes/stop-preview" => "themes#stop_preview", as: :themes_stop_preview
     resources :themes, only: :destroy do
@@ -84,6 +86,14 @@ Rails.application.routes.draw do
     post "updates/checks" => "updates#checks", as: :updates_checks
     post "updates/check-now" => "updates#check_now", as: :updates_check_now
     post "updates/combined" => "updates#combined", as: :updates_combined
+    get "modules/add" => "module_catalog#review", as: :module_catalog
+    post "modules/add" => "module_catalog#create", as: :module_catalog_requests
+    get "modules/requests/:id" => "module_catalog#show", as: :module_request
+    post "modules/requests/:id/cancel" => "module_catalog#cancel", as: :cancel_module_request
+    get "modules" => "modules#index"
+    post "modules" => "modules#create"
+    patch "modules/:id/enable" => "modules#enable", as: :enable_module
+    patch "modules/:id/disable" => "modules#disable", as: :disable_module
     get "seo" => "seo#show", as: :seo
     get "seo/sitemap" => "seo#sitemap", as: :seo_sitemap
     get "seo/indexability" => "seo#indexability", as: :seo_indexability
@@ -95,6 +105,7 @@ Rails.application.routes.draw do
   get "media/:content_id/:public_id/:variant" => "media_files#show", as: :public_media_file
   get "preview/:preview_id/media/:public_id/:variant" => "media_files#preview", as: :preview_media_file
   get "theme-assets/:theme_key/:version/:digest/:file" => "theme_assets#show", as: :theme_asset, constraints: { version: /[0-9a-z.-]+/, file: /[a-z0-9._-]+/ }, format: false
+  get "theme-preview-assets/:theme_key/:version/:digest/:file" => "theme_assets#preview", as: :theme_preview_asset, constraints: { version: /[0-9a-z.-]+/, file: /[a-z0-9._-]+/ }, format: false
   get "theme-media/:overlay_id/:kind" => "theme_assets#media", as: :theme_media
   get "preview/:id" => "content_previews#show", as: :content_preview
   get "blog" => "public_contents#archive"
@@ -105,6 +116,7 @@ Rails.application.routes.draw do
   get "robots.txt" => "public_contents#robots"
   get "sitemap.xml" => "public_contents#sitemap", defaults: { format: "xml" }
   get "feed.xml" => "public_contents#feed", defaults: { format: "xml" }
+  Railpress::Extensions.registry.mount(self)
   root "public_contents#home"
   get ":slug" => "public_contents#page", constraints: { slug: /[^\/]+/ }
   get "*slug" => "public_contents#page", format: false

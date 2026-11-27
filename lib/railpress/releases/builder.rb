@@ -8,9 +8,11 @@ module Railpress
       module_function
       # Caller supplies reviewed source bytes and a synthetic signer in qualification.
       # Production signing/custody and distribution are separate owner gates.
-      def build(files:, metadata:, compatibility:, signer:, dusk: nil)
+      def build(files:, metadata:, compatibility:, signer:, dusk: nil, package_policy: nil, bridge_schema: nil)
         files = DuskOffer.bind(files, compatibility, metadata, **dusk) if dusk
         raise Invalid, "builder_files" unless files.is_a?(Hash) && files.length.between?(1, 4096)
+        files = bridge_files(files, compatibility, bridge_schema) if bridge_schema
+        raise Invalid, "product_bridge_format" if bridge_schema && package_policy
         inventory = {}
         tar = StringIO.new("".b)
         files.sort.each do |name, source|
@@ -43,8 +45,10 @@ module Railpress
         gzip.write(tar.string)
         gzip.close
         package = compressed.string
-        manifest = metadata.merge("format" => "railpress.release.v1", "files" => inventory, "compatibility" => compatibility,
+        format = package_policy ? "railpress.release.v2" : "railpress.release.v1"
+        manifest = metadata.merge("format" => format, "files" => inventory, "compatibility" => compatibility,
           "package" => { "bytes" => package.bytesize, "sha256" => Digest::SHA256.hexdigest(package) })
+        manifest["package_policy"] = package_policy if package_policy
         Manifest.validate!(manifest)
         signature = { "algorithm" => "ed25519", "key_id" => Releases.key_id(signer),
           "signature" => Base64.strict_encode64(signer.sign(nil, Releases.canonical(manifest))) }
@@ -52,6 +56,25 @@ module Railpress
           "signature" => signature, "package" => package }
         artifact[DuskOffer::ASSET_NAME] = files.fetch(DuskOffer::INVENTORY_PATH).fetch("bytes") if dusk
         artifact
+      end
+
+      def bridge_files(files, compatibility, schema)
+        path = "lib/railpress/product.json"
+        bridge_path = "lib/railpress/#{ProductMetadata::BRIDGE}"
+        source = files.fetch(path)
+        product = Releases.parse(source.fetch("bytes"), limit: 4096)
+        Releases.integer!(schema, 1, 100_000)
+        unless schema < product.fetch("schema") && %w[schema_read schema_write].all? { |field| schema.between?(*compatibility.fetch(field)) } &&
+            !files.key?(bridge_path)
+          raise Invalid, "product_bridge_schema"
+        end
+        contract = product.slice("version", "schema", "extension_api").merge("format" => ProductMetadata::FORMAT, "predecessor_schema" => schema)
+        legacy = product.except("extension_api").merge("schema" => schema)
+        ProductMetadata.apply(legacy, contract)
+        files.merge(path => source.merge("bytes" => Releases.canonical(legacy)),
+          bridge_path => { "bytes" => Releases.canonical(contract), "mode" => 0o644 })
+      rescue KeyError, ArgumentError, TypeError
+        raise Invalid, "product_bridge_schema", cause: nil
       end
     end
   end

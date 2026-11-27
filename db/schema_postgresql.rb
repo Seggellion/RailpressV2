@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -174,6 +174,62 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
     t.index ["content_id"], name: "index_dashboard_draft_submissions_on_content_id"
     t.index ["site_id", "request_key"], name: "dashboard_submission_identity", unique: true
     t.index ["site_id"], name: "index_dashboard_draft_submissions_on_site_id"
+  end
+
+  create_table "extension_install_requests", force: :cascade do |t|
+    t.bigint "site_id", null: false
+    t.bigint "actor_id", null: false
+    t.integer "actor_auth_version", null: false
+    t.string "site_identity", limit: 36, null: false
+    t.string "site_origin", limit: 255, null: false
+    t.string "request_key", limit: 36, null: false
+    t.string "operation", limit: 16, null: false
+    t.string "module_id", limit: 30, null: false
+    t.string "version", limit: 80, null: false
+    t.string "package_sha256", limit: 64, null: false
+    t.string "manifest_sha256", limit: 64, null: false
+    t.string "plan_sha256", limit: 64, null: false
+    t.string "core_version", limit: 80, null: false
+    t.bigint "engine_generation", null: false
+    t.string "engine_fingerprint", limit: 64, null: false
+    t.bigint "activation_generation", null: false
+    t.string "state", limit: 24, null: false
+    t.bigint "receipt_sequence", default: 0, null: false
+    t.string "receipt_sha256", limit: 64
+    t.json "operator_receipt"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["request_key"], name: "idx_ext_request_key", unique: true
+    t.index ["site_id"], name: "index_extension_install_requests_on_site_id"
+  end
+
+  create_table "extension_installations", force: :cascade do |t|
+    t.bigint "site_id", null: false
+    t.string "module_id", limit: 30, null: false
+    t.string "version", limit: 80, null: false
+    t.string "package_sha256", limit: 64, null: false
+    t.string "manifest_sha256", limit: 64, null: false
+    t.string "package_state", limit: 16, null: false
+    t.boolean "enabled", default: false, null: false
+    t.bigint "activation_generation", null: false
+    t.bigint "engine_generation", null: false
+    t.string "engine_fingerprint", limit: 64, null: false
+    t.integer "module_schema", null: false
+    t.integer "job_revision", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id", "module_id"], name: "idx_ext_install_site_module", unique: true
+  end
+
+  create_table "extension_migration_records", force: :cascade do |t|
+    t.bigint "site_id", null: false
+    t.string "module_id", limit: 30, null: false
+    t.string "version", limit: 14, null: false
+    t.string "sha256", limit: 64, null: false
+    t.string "state", limit: 24, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id", "module_id", "version"], name: "idx_ext_migration_site_module_version", unique: true
   end
 
   create_table "import_batches", force: :cascade do |t|
@@ -903,6 +959,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
     t.datetime "ever_active_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "upload_publisher", limit: 64
     t.index ["site_id", "theme_key", "version", "digest"], name: "theme_package_identity", unique: true
     t.index ["site_id"], name: "index_theme_installations_on_site_id"
     t.check_constraint "status::text = ANY (ARRAY['validated'::character varying::text, 'removed'::character varying::text])", name: "theme_install_status"
@@ -932,6 +989,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
     t.datetime "created_at", null: false
     t.json "deadline_binding"
     t.datetime "deadline_expired_at"
+    t.integer "state_version"
+    t.string "engine_fingerprint", limit: 64
     t.index ["actor_id"], name: "index_theme_previews_on_actor_id"
     t.index ["theme_installation_id"], name: "index_theme_previews_on_theme_installation_id"
     t.index ["theme_overlay_id"], name: "index_theme_previews_on_theme_overlay_id"
@@ -970,6 +1029,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
     t.index ["user_id"], name: "index_user_sessions_on_user_id"
   end
 
+  create_table "theme_uploads", force: :cascade do |t|
+    t.bigint "site_id", null: false
+    t.bigint "theme_installation_id"
+    t.bigint "actor_id", null: false
+    t.integer "actor_auth_version", null: false
+    t.string "operation_key", limit: 36, null: false
+    t.string "transport_sha256", limit: 64, null: false
+    t.integer "byte_size", null: false
+    t.string "state", limit: 20, null: false
+    t.string "result_code", limit: 48
+    t.string "manifest_sha256", limit: 64
+    t.json "overlay_mapping"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["operation_key"], name: "index_theme_uploads_on_operation_key", unique: true
+    t.index ["site_id"], name: "index_theme_uploads_on_site_id"
+    t.index ["theme_installation_id"], name: "index_theme_uploads_on_theme_installation_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "username", limit: 40, null: false
     t.string "email", limit: 254, null: false
@@ -1003,6 +1081,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
   add_foreign_key "dashboard_draft_submissions", "contents"
   add_foreign_key "dashboard_draft_submissions", "sites"
   add_foreign_key "dashboard_draft_submissions", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "extension_install_requests", "sites"
+  add_foreign_key "extension_installations", "sites"
+  add_foreign_key "extension_migration_records", "sites"
   add_foreign_key "import_batches", "sites"
   add_foreign_key "import_batches", "users", column: "actor_id"
   add_foreign_key "import_events", "import_batches"
@@ -1078,4 +1159,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
   add_foreign_key "theme_states", "theme_overlays", column: "active_overlay_id"
   add_foreign_key "theme_states", "theme_overlays", column: "previous_overlay_id"
   add_foreign_key "user_sessions", "users", on_delete: :cascade
+  add_foreign_key "theme_uploads", "sites"
+  add_foreign_key "theme_uploads", "theme_installations"
 end

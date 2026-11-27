@@ -9,6 +9,9 @@ require_relative "recovery/target"
 require_relative "recovery/validator"
 require_relative "recovery/candidate"
 require_relative "recovery/fresh"
+require_relative "extensions"
+require_relative "recovery/revocations"
+require_relative "recovery/disk"
 
 module Railpress
   # Operator-only, offline synthetic admission. Production admission/cutover is

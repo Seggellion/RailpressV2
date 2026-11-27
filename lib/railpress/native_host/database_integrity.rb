@@ -17,8 +17,9 @@ module Railpress
           @definitions = { "expected" => expected, "actual" => actual }
         end
       end
-      def initialize(database, engine)
+      def initialize(database, engine, extra_tables: [], strict_core: true)
         @database, @engine = database, engine
+        @extra_tables, @strict_core = extra_tables, strict_core
       end
       def query(sql)
         (@engine == "postgresql" ? @client.exec(sql) : @client.query(sql, cast: false)).to_a
@@ -74,9 +75,13 @@ module Railpress
           query("SHOW TABLES").map { |row| row.values.first }.sort
         end
         expected = (source.scan(/^\s*create_table "([a-z0-9_]+)"/).flatten + %w[ar_internal_metadata schema_migrations]).sort
-        raise Error, "integrity_table_inventory" unless tables == expected
+        if @strict_core && tables != (expected + @extra_tables).sort.uniq
+          raise Error, "integrity_table_inventory"
+        end
         keys = foreign_keys
-        raise Error, "integrity_foreign_key_inventory" unless keys.any? && keys == expected_keys
+        if @strict_core && keys.reject { |row| @extra_tables.include?(row.first) } != expected_keys
+          raise Error, "integrity_foreign_key_inventory"
+        end
         keys.each do |from, to, columns, primary, _deletion|
           (columns + primary).each { |name| identifier(name) }
           join = columns.zip(primary).map { |left, right| "f.#{identifier(left)}=p.#{identifier(right)}" }.join(" AND ")
@@ -102,6 +107,14 @@ module Railpress
           schema
         end
         true
+      ensure
+        @client = nil
+      end
+      def schema_fingerprint
+        @database.connection do |client, _engine|
+          @client = client
+          digest({ "definition" => schema, "versions" => query("SELECT version FROM schema_migrations ORDER BY version").map { |row| row.fetch("version") } })
+        end
       ensure
         @client = nil
       end

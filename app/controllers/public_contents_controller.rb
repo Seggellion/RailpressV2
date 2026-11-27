@@ -138,12 +138,14 @@ class PublicContentsController < ApplicationController
     options["logo_alt"] = @theme_pair.overlay.media_details.dig("logo", "alt")
     navigation = Navigation::Renderer.call(site: @site, theme_key: @theme_pair.installation.theme_key, declared: bundle.manifest["menu_locations"] || {}, preview: @navigation_preview)
     context = Themes::Context.build(site: @site, family: family, presenter: @presenter, presenters: @presenters || [], query: @query, title: @term&.name || (core_template == :search ? "Search" : "Blog"), page: @page || 1, more: @more, path: @archive_path || "/", options: options, navigation: navigation)
-    @theme_output = Railpress::ThemeRenderer.render(bundle, context)
+    @theme_output = Railpress::ThemeRenderer.render(bundle, context, preview: @theme_pair.preview)
     if [ @theme_output.navigation, @theme_output.footer, @theme_output.body ].any? { |html| Nokogiri::HTML5.fragment(html).at_css("details[data-disclosure]") }
       @public_script_nonce = SecureRandom.base64(24)
       response.set_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'nonce-#{@public_script_nonce}'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
     end
-    @theme_stylesheets = bundle.manifest["assets"].values.select { |asset| asset["content_type"] == "text/css" }.map { |asset| theme_asset_path(@theme_pair.installation.theme_key, @theme_pair.installation.version, bundle.digest, asset["file"].delete_prefix("assets/")) }
+    @theme_stylesheets = bundle.manifest["assets"].values.filter_map do |asset|
+      Railpress::ThemeRenderer.asset_path(bundle, asset.fetch("file"), preview: @theme_pair.preview) if asset["content_type"] == "text/css"
+    end
     @theme_favicon = theme_media_path(@theme_pair.overlay.id, "favicon") if @theme_pair.overlay.media_details["favicon"]
     render html: @theme_output.body.html_safe, layout: "public_content", status: status
   rescue Railpress::ThemePackage::Invalid, Railpress::ThemeRenderer::Invalid, ActionView::Template::Error, StandardError => error

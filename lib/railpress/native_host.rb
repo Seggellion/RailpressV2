@@ -53,3 +53,5 @@ Railpress::NativeHost::Host.include(Railpress::NativeHost::Lifecycle)
 Railpress::NativeHost::Host.include(Railpress::NativeHost::Recovery)
 require_relative "native_host/supervisor"
 require_relative "native_host/cli"
+require_relative "native_host/module_repair"
+require_relative "native_host/module_operation"

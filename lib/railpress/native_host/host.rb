@@ -157,16 +157,18 @@ module Railpress
         raise Error, "status_signer_untrusted" unless policy.roots.dig(key, "purpose") == "status" && !policy.revoked.include?(key) && !state["revoked"].include?(key)
         observation ||= observe(state)
         observed, consistent = observation.values_at("proxy", "consistent")
+        disk_ready = observation["disk_admission"]
+        restore_ready = observation["packages_required"] ? !disk_ready.nil? : state.dig("restore_proof", "completed") == true
         request ||= state["operations"][state["events"].last&.fetch("request")]
         statement = { "format" => "railpress.host-status.v1", "deployment_id" => config.data["deployment_id"],
           "scope" => config.data["scope"], "generation" => state["generation"], "active_release" => state["active"],
           "active_version" => state.dig("releases", state["active"], "version"), "previous_release" => state["previous"],
           "observed_proxy" => observed, "services_healthy" => observation["healthy"], "maintenance" => state["maintenance"], "reconciliation_required" => !consistent || !observation["healthy"] || state["recovery_required"] == true ||
             state["operations"].values.any? { |operation| !operation["completed"] && %w[SWITCHING VERIFYING RESTORING RESTORE_REQUIRED].include?(operation["phase"]) },
-          "restore_drill_completed" => state.dig("restore_proof", "completed") == true,
-          "snapshot_id" => state["snapshot"], "observed_elapsed" => SecurityClock.elapsed, "domain" => SecurityClock.boot_domain,
+          "restore_drill_completed" => restore_ready,
+          "snapshot_id" => observation["packages_required"] ? disk_ready&.fetch("snapshot") : state["snapshot"], "observed_elapsed" => SecurityClock.elapsed, "domain" => SecurityClock.boot_domain,
           "last_operation" => request && request.slice("id", "operation", "phase", "error"),
-          "capabilities" => [ "preflight" ] + (state.dig("restore_proof", "completed") && state["active"] && state["maintenance"] == false && !state["recovery_required"] && consistent && observation["healthy"] &&
+          "capabilities" => [ "preflight" ] + (restore_ready && state["active"] && state["maintenance"] == false && !state["recovery_required"] && consistent && observation["healthy"] &&
             !state["operations"].values.any? { |operation| !operation["completed"] && %w[SWITCHING VERIFYING RESTORING RESTORE_REQUIRED].include?(operation["phase"]) } ? %w[promote revert] : []),
           "production_qualified" => false, "independent_utc_qualified" => false }
         F.atomic(config.app_environment.fetch("RAILPRESS_NATIVE_PUBLIC_STATUS"), Releases.canonical(NativeHost.sign(statement, @signer)), mode: 0o444)
@@ -181,7 +183,19 @@ module Railpress
           policy = trust
           policy.apply!(state)
           manifest, = Plan.new(config).load!(state["active"], trust: policy, trust_state: state)
-          runtime.probe.identity!(runtime.probe.health, state["active"], manifest)
+          report = runtime.probe.identity!(runtime.probe.health, state["active"], manifest)
+          packages = report["package_context"]
+          result["packages_required"] = packages ? Releases::PackageContext.required?(packages) :
+            !config.app_environment["RAILPRESS_EXTENSION_ROOT"].nil?
+          if packages && result["packages_required"]
+            require_relative "../recovery"
+            begin
+              result["disk_admission"] = Railpress::Recovery::Disk.admit_promotion!(config: config,
+                release: state["active"], packages: packages, policy: policy, trust_state: state)
+            rescue Error
+              # Status keeps promotion held until the exact inventory is recovered.
+            end
+          end
           node = state.fetch("services").fetch(state["active"])
           result["healthy"] = %w[puma worker].all? { |role| runtime.processes.verified(node[role]) } &&
             runtime.processes.verified(state["proxy"])

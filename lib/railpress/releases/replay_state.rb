@@ -27,7 +27,7 @@ module Railpress
         raise Invalid, "replay_state_corrupt" unless source_sequence.is_a?(Hash) && source_sequence.length <= 4
         target["sequence"] ||= {}
         source_sequence.each do |channel, reservation|
-          raise Invalid, "replay_state_corrupt" unless channel == "development"
+          raise Invalid, "replay_state_corrupt" unless %w[development alpha stable].include?(channel)
           Releases.keys!(reservation, %w[sequence release_id request_id])
           Releases.integer!(reservation["sequence"], 1, 2**53 - 1)
           Releases.identity!(reservation["release_id"])

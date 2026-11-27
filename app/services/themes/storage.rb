@@ -41,6 +41,9 @@ module Themes
       raise Railpress::ThemePackage::Invalid, "package_removed" unless installation.status == "validated" || (allow_removed && installation.ever_active_at)
       bundle = Railpress::ThemePackage.load(path(installation.theme_key, installation.version, installation.digest), trusted_keys: trusted_keys)
       raise Railpress::ThemePackage::Invalid, "catalog_digest" unless bundle.digest == installation.digest && bundle.manifest["id"] == installation.theme_key && bundle.manifest["version"] == installation.version
+      if installation.upload_publisher && Publishers.verify!(bundle) != installation.upload_publisher
+        raise Railpress::ThemePackage::Invalid, "upload_publisher_changed"
+      end
       bundle
     end
     def install(bundle)
@@ -52,17 +55,23 @@ module Themes
     def install_locked(bundle)
       destination = path(bundle.manifest["id"], bundle.manifest["version"], bundle.digest)
       return destination if File.directory?(destination) && Railpress::ThemePackage.load(destination, trusted_keys: trusted_keys).digest == bundle.digest
+      raise Railpress::ThemePackage::Invalid, "occupied_theme_path" if File.exist?(destination) || File.symlink?(destination)
       FileUtils.mkdir_p(File.dirname(destination), mode: 0o700)
       temporary = Dir.mktmpdir("stage-", File.dirname(destination))
       begin
         bundle.files.each do |name, bytes|
           target = File.join(temporary, name)
           FileUtils.mkdir_p(File.dirname(target), mode: 0o700)
-          File.open(target, File::WRONLY | File::CREAT | File::EXCL, 0o400) { |file| file.binmode; file.write(bytes); file.flush; file.fsync }
+          File.open(target, File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW, 0o400) { |file| file.binmode; file.write(bytes); file.flush; file.fsync }
         end
-        Dir.glob(File.join(temporary, "**", "*")).select { |entry| File.directory?(entry) }.each { |entry| File.chmod(0o500, entry) }
+        Dir.glob(File.join(temporary, "**", "*")).select { |entry| File.directory?(entry) }.reverse_each do |entry|
+          File.chmod(0o500, entry)
+          File.open(entry, File::RDONLY, &:fsync)
+        end
         File.chmod(0o500, temporary)
+        File.open(temporary, File::RDONLY, &:fsync)
         File.rename(temporary, destination)
+        File.open(File.dirname(destination), File::RDONLY, &:fsync)
       ensure
         if File.directory?(temporary)
           Dir.glob(File.join(temporary, "**", "*")).select { |entry| File.directory?(entry) }.each { |entry| File.chmod(0o700, entry) }

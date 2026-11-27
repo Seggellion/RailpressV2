@@ -51,8 +51,12 @@ class QualificationThemeIsolationTest < ActionDispatch::IntegrationTest
         assert_equal i == owner ? 200 : 404, client.response.status
         assert_includes client.response.headers["Cache-Control"], "no-store" if i == owner
       end
-      client.get("/theme-assets/harbor/#{harbor.version}/#{harbor.digest}/public.css")
+      client.get("/theme-preview-assets/harbor/#{harbor.version}/#{harbor.digest}/public.css")
       assert_equal i < 2 ? 200 : 404, client.response.status
+      assert_includes client.response.headers["Cache-Control"], "no-store"
+      assert_includes client.response.headers["X-Robots-Tag"], "noindex"
+      client.get("/theme-assets/harbor/#{harbor.version}/#{harbor.digest}/public.css")
+      assert_equal 404, client.response.status
     end
     # Real role/auth-version revocation, not a hand-edited session cookie.
     Identity::ManageUsers.change_role!(actor: second, user: @owner, role: "author")
@@ -60,6 +64,8 @@ class QualificationThemeIsolationTest < ActionDispatch::IntegrationTest
     assert_equal 200, clients[0].response.status
     refute_match(/PREVIEW OWNER [01] PRIVATE CANARY/, clients[0].response.body)
     clients[0].get("/theme-media/#{overlays[0].id}/logo"); assert_equal 404, clients[0].response.status
+    clients[0].get("/theme-preview-assets/harbor/#{harbor.version}/#{harbor.digest}/public.css")
+    assert_equal 404, clients[0].response.status
     File.write(Rails.root.join("docs/evidence", ENV.fetch("RAILPRESS_EVIDENCE_MILESTONE"), "#{ENV.fetch('RAILPRESS_TEST_ENGINE')}-concurrent-security-proof.json"), JSON.pretty_generate(scope: "twenty concurrent HTTP responses;two owners/nonowner/anonymous plus private routes/media/assets/revocation", observations: results) + "\n")
   end
   test "main thread cached state can be stale after exactly one activation wins without leaking a pair" do

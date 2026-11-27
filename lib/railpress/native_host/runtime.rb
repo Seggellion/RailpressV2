@@ -127,6 +127,11 @@ module Railpress
             raise Error, "worker_release_identity" unless result.values_at("nonce", "deployment_id", "job_contract") == [ nonce, @config.data["deployment_id"], 1 ]
             product = NativeHost.load_document(File.join(@config.release(id), "lib/railpress/product.json"), maximum: 4096)
             raise Error, "worker_release_identity" unless result["version"] == product["version"]
+            if @config.app_environment["RAILPRESS_EXTENSION_ROOT"]
+              verified = probe.health(slot: slot)
+              raise Error, "worker_engine_identity" unless Releases::SHA.match?(result["engine_set_fingerprint"].to_s) &&
+                result["engine_set_fingerprint"] == verified["engine_set_fingerprint"]
+            end
             node["worker_proof"] = result
             capture_worker_children!(node)
             @store.persist(state)

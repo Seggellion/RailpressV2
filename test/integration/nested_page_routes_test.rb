@@ -45,7 +45,7 @@ class NestedPageRoutesTest < ActionDispatch::IntegrationTest
     %w[docs/../secret docs//secret /docs/secret docs/secret/ a/b/c/d docs/%61dmin docs/secret?x docs/secret#x].each do |slug|
       assert_raises(ActiveRecord::RecordInvalid, slug) { draft("Page", slug: slug) }
     end
-    %w[theme-assets/secret theme-media/secret/logo].each do |slug|
+    %w[theme-assets/secret theme-preview-assets/secret theme-media/secret/logo].each do |slug|
       assert_raises(ActiveRecord::RecordInvalid) { draft("Page", slug: slug) }
       refute Seo::RouteRegistry.redirect_source?("/#{slug}")
     end

@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require_relative "../lib/railpress/native_scope"
+id, confirmation = ARGV
+abort "Exact native module request and deployment required" unless ARGV.length == 2 &&
+  %w[w03_bridge w04_recruitment w04_recruitment_final].include?(ENV["RAILPRESS_NATIVE_TEST_PROFILE"]) && ENV["RAILPRESS_DEPLOYMENT_ID"] == confirmation
+Railpress::NativeScope.verify!
+Railpress::NativeScope.boot!
+require_relative "../lib/railpress/native_host"
+config = Railpress::NativeHost::Config.new(ENV.fetch("RAILPRESS_NATIVE_HOST_ROOT"))
+puts Railpress::Releases.canonical(Railpress::NativeHost::ModuleOperation.new(config).perform!(id, confirmation: confirmation))

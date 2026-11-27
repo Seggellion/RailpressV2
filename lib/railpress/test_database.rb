@@ -12,6 +12,7 @@ module Railpress
       "mysql2" => { "suffix" => "mysql", "major" => "8.4.", "port" => 55404 }
     }.freeze
     PROFILES = { "native_probe" => "ci_000000000001", "qualification_probe" => "ci_a17000000002", "site_qualification" => "ci_a17000000003", "m15_source" => "ci_15a0ce000001", "m15_target" => "ci_15a0ce000002", "m16_source" => "ci_16a0ce000001", "m16_target" => "ci_16a0ce000002",
+      "w03_bridge" => "ci_030000000001", "w03_restore" => "ci_030000000002", "w03_reference" => "ci_030000000003", "w03_restore_retry" => "ci_030000000004", "w04_recruitment" => "ci_040000000001", "w04_recruitment_final" => "ci_040000000002",
       "recovery" => "ci_a08100000001", "recovery_source" => "ci_a08100000002", "recovery_target" => "ci_a08100000003",
       "deadline" => "ci_a09100000001", "deadline_probe" => "ci_a09100000002", "deadline_control" => "ci_a09100000003",
       "deadline_focused" => "ci_a09100000004", "deadline_full" => "ci_a09100000005",
@@ -39,6 +40,8 @@ module Railpress
       return "test-targets.json" unless profile
       return "site-test-targets.json" if profile == "site_qualification"
       return "probe-test-targets.json" if %w[native_probe qualification_probe].include?(profile)
+      return "w04-test-targets.json" if %w[w04_recruitment w04_recruitment_final].include?(profile)
+      return "w03-test-targets.json" if profile.start_with?("w03_")
       return "recovery-test-targets.json" if profile.start_with?("recovery")
       return "deadline-test-targets.json" if profile.start_with?("deadline")
       return "reliability-test-targets.json" if profile.start_with?("reliability_")

@@ -9,6 +9,7 @@ module Railpress
         @db = Database.new(config)
       end
       def validate!(plan)
+        return validate_files!(plan) if plan.is_a?(Hash) && plan["format"] == "railpress.expand.files.v1"
         Releases.keys!(plan, %w[format migration_version schema_from schema_to write_contract jobs_read jobs_write steps])
         raise Error, "expand_plan_format" unless plan["format"] == "railpress.expand.v1"
         raise Error, "migration_identity" unless plan["migration_version"].is_a?(String) && plan["migration_version"].match?(/\A\d{14}\z/)
@@ -37,6 +38,75 @@ module Railpress
           end
         end
         plan
+      end
+      def validate_files!(plan)
+        Releases.keys!(plan, %w[format engine site predecessor release schema_from schema_to write_contract jobs_read jobs_write before after migrations])
+        unless plan["format"] == "railpress.expand.files.v1" && plan["engine"] == @config.data["engine"] &&
+            plan["site"] == @config.data["install_id"]
+          raise Error, "native_expand_binding"
+        end
+        %w[predecessor release before after].each { |field| Releases.identity!(plan[field]) }
+        %w[schema_from schema_to write_contract].each { |field| Releases.integer!(plan[field], 1, 100_000) }
+        raise Error, "schema_contraction_forbidden" unless plan["schema_to"] > plan["schema_from"] && plan["write_contract"] == plan["schema_to"]
+        %w[jobs_read jobs_write].each { |field| Releases::PackageContext.number_window!(plan[field]) }
+        rows = plan.fetch("migrations")
+        raise Error, "native_migration_inventory" unless rows.is_a?(Array) && rows.size.between?(1, 8)
+        rows.each do |row|
+          Releases.keys!(row, %w[version path sha256])
+          unless row["version"].is_a?(String) && row["version"].match?(/\A[1-9]\d{13}\z/) &&
+              row["path"].is_a?(String) && row["path"].match?(%r{\Adb/migrate/#{row['version']}_[a-z][a-z0-9_]*\.rb\z})
+            raise Error, "native_migration_identity"
+          end
+          Releases.identity!(row["sha256"])
+        end
+        versions = rows.map { |row| row["version"] }
+        raise Error, "native_migration_order" unless versions == versions.uniq.sort
+        plan
+      end
+
+      def file_plan?(plan) = plan && plan["format"] == "railpress.expand.files.v1"
+
+      def apply_files!(plan, manifest:, candidate:, predecessor:, request_id:, environment:, progress:, previous_progress: nil, fault: nil)
+        validate_files!(plan)
+        NativeHost.uuid!(request_id)
+        raise Error, "native_expand_binding" unless plan.values_at("release", "predecessor") == [ candidate, predecessor ]
+        raise Error, "native_migration_reconciliation_required" if previous_progress
+        raise Error, "native_migration_profile" unless @config.data["scope"] == "isolated-synthetic-nginx-v1" &&
+          @config.data["test_database_profile"] == "w03_bridge"
+        @db.assert_installation!
+        @db.assert_restore_offline!
+        definition = @db.integrity(strict_core: false)
+        raise Error, "native_schema_predecessor" unless definition.schema_fingerprint == plan["before"]
+        root = @config.release(candidate)
+        rows = plan["migrations"]
+        versions = @db.query("SELECT version FROM schema_migrations").map { |row| row["version"] }
+        candidates = manifest.fetch("files").keys.grep(%r{\Adb/migrate/[0-9]{14}_[a-z0-9_]+\.rb\z})
+        pending = candidates.reject { |name| versions.include?(File.basename(name).split("_").first) }.sort
+        raise Error, "native_migration_pending" unless pending == rows.map { |row| row["path"] }
+        rows.each do |row|
+          entry = manifest.fetch("files").fetch(row["path"])
+          bytes = F.read(File.join(root, row["path"]), maximum: 131_072)
+          unless entry["sha256"] == row["sha256"] && Digest::SHA256.hexdigest(bytes) == row["sha256"]
+            raise Error, "native_migration_digest"
+          end
+        end
+        progress.call({ "state" => "STARTED", "completed_versions" => [], "partial" => true })
+        completed = []
+        rows.each do |row|
+          fault&.call("before_file_migration")
+          log = @config.path("logs", "migration-#{request_id}-#{row['version']}.log")
+          launcher = File.expand_path("../../../bin/railpress-native-migrate", __dir__)
+          Commands.run([ @config.data["ruby_binary"], launcher, *row.values_at("version", "path", "sha256") ],
+            env: environment, chdir: root, log: log)
+          fault&.call("after_file_migration")
+          completed << row["version"]
+          progress.call({ "state" => "STARTED", "completed_versions" => completed.dup, "partial" => true })
+        end
+        @db.assert_restore_offline!
+        raise Error, "native_schema_candidate" unless definition.schema_fingerprint == plan["after"]
+        report = { "state" => "APPLIED", "completed_versions" => completed, "partial" => false, "schema_sha256" => plan["after"] }
+        progress.call(report)
+        report
       end
       def apply!(plan, progress:, fault: nil)
         validate!(plan)
@@ -88,6 +158,20 @@ module Railpress
       end
       def revert_eligible!(manifest, contract)
         tables = @db.table_names
+        if tables.include?("extension_installations")
+          rows = @db.query("SELECT id FROM extension_installations LIMIT 1")
+          schema2 = @db.column?("theme_installations", "upload_publisher") &&
+            @db.query("SELECT id FROM theme_installations WHERE upload_publisher IS NOT NULL LIMIT 1").any?
+          jobs = @db.query("SELECT id FROM solid_queue_jobs WHERE finished_at IS NULL AND class_name='ValidateThemeUploadJob' LIMIT 1")
+          unless (rows.empty? && !schema2 && jobs.empty?) || manifest.fetch("files", {}).key?("lib/railpress/releases/package_context.rb")
+            raise Error, "incompatible_revert_packages"
+          end
+        end
+        unless manifest.fetch("files", {}).key?("lib/railpress/extensions/candidate_withdrawals.rb")
+          if tables.include?("platform_states") && @db.query("SELECT id FROM platform_states WHERE scope_name LIKE 'extension!_candidate!_withdrawal:%' ESCAPE '!' LIMIT 1").any?
+            raise Error, "incompatible_revert_candidate_withdrawals"
+          end
+        end
         if tables.include?("import_batches")
           required_state = @db.query("SELECT id FROM import_batches LIMIT 1").any? || @db.query("SELECT id FROM portability_exports LIMIT 1").any? || @db.query("SELECT id FROM portability_identities LIMIT 1").any?
           pending = @db.query("SELECT id FROM solid_queue_jobs WHERE finished_at IS NULL AND class_name IN ('PortabilityExportJob','PortabilityImportJob') LIMIT 1").any?

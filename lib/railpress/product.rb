@@ -1,16 +1,18 @@
 # frozen_string_literal: true
 
 require "json"
+require_relative "product_metadata"
 
 module Railpress
   module Product
-    DEFINITION = JSON.parse(File.read(File.join(__dir__, "product.json"))).freeze
+    DEFINITION = ProductMetadata.load(__dir__).freeze
     VERSION = DEFINITION.fetch("version")
     CHANNEL = DEFINITION.fetch("channel")
     FAMILY = "Railpress 2.0"
-    SCHEMA = 14
+    SCHEMA = DEFINITION.fetch("schema")
     JOB_PAYLOAD = 1
     THEME_API = 1
+    EXTENSION_API = DEFINITION.fetch("extension_api")
     # R8 media intent and prefix bindings require a core that understands them.
     CONFIGURATION = 2
     SECURITY_CLOCK = 2

@@ -48,12 +48,14 @@ module Railpress
         "installation_id" => site.install_id, "database_engine" => ActiveRecord::Base.connection.adapter_name,
         "theme" => selected && { "id" => selected.theme_key, "version" => selected.version, "digest" => selected.digest,
           "installation_id" => selected.id, "overlay_id" => state.active_overlay_id },
-        "themes" => ::Releases::Context.current.fetch("themes"),
+        "themes" => ::Releases::Context.respond_to?(:verified_themes) ? ::Releases::Context.verified_themes : ::Releases::Context.current.fetch("themes"),
+        "engine_set_fingerprint" => defined?(Railpress::Extensions) ? Railpress::Extensions.registry.fingerprint : nil,
+        "package_context" => package_context,
         "business_contract" => "railpress.native-business.v2",
         "business_fingerprints" => BUSINESS.to_h { |name|
           relation = name.constantize.order(:id)
           relation = relation.where(content_preview_id: nil) if name == "MediaReference"
-          [ name, Digest::SHA256.hexdigest(Railpress::Releases.canonical(relation.map { |record| record.attributes.reject { |key, _value| key.start_with?("extension_") } })) ]
+          [ name, Digest::SHA256.hexdigest(Railpress::Releases.canonical(relation.map { |record| record.attributes.reject { |key, value| key.start_with?("extension_") || (key == "upload_publisher" && value.nil?) } })) ]
         }.merge(news_fingerprints),
         "password_verifier_fingerprint" => Digest::SHA256.hexdigest(Railpress::Releases.canonical(User.order(:id).pluck(:id, :password_digest))),
         "password_verifiers_preserved_by_code_update" => true,
@@ -61,6 +63,11 @@ module Railpress
         "clock_binding" => Digest::SHA256.hexdigest(observation.fetch("domain") + observation.fetch("epoch")),
         "clock_anomaly" => !observation["anomaly"].nil?, "job_contract" => Railpress::Product::JOB_PAYLOAD,
         "worker_processes" => SolidQueue::Process.order(:id).pluck(:pid, :kind) }
+    end
+    def self.package_context
+      ::Releases::Context.local_packages if ::Releases::Context.respond_to?(:local_packages)
+    rescue Railpress::Releases::Invalid
+      nil
     end
   end
 end

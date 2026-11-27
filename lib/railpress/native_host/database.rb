@@ -92,7 +92,7 @@ module Railpress
       def restore!(*, **)
         raise Error, "legacy_in_place_restore_unsupported"
       end
-      def restore_fresh!(id, snapshot, expected_tables:, progress: nil)
+      def restore_fresh!(id, snapshot, expected_tables:, progress: nil, extra_tables: [])
         @config.database!
         assert_restore_offline!
         raise Error, "fresh_target_populated" unless table_names.empty?
@@ -119,7 +119,8 @@ module Railpress
         progress&.call("VERIFY_INSTALLATION")
         assert_installation!
         progress&.call("VERIFY_SCHEMA")
-        verified = integrity.verify_schema!
+        verified = integrity(extra_tables: extra_tables).verify_schema!
+        raise Error, "fresh_table_inventory" if expected_tables.any? && expected_tables.sort != table_names
         if engine == "postgresql" && postgresql_public_schema! != pg_schema
           raise Error, "fresh_public_schema_changed"
         end
@@ -187,7 +188,9 @@ module Railpress
         end
         true
       end
-      def integrity = DatabaseIntegrity.new(self, @config.data.fetch("engine"))
+      def integrity(extra_tables: [], strict_core: true)
+        DatabaseIntegrity.new(self, @config.data.fetch("engine"), extra_tables: extra_tables, strict_core: strict_core)
+      end
       def media_reference_fingerprint(permanent: false)
         columns = %w[id media_asset_id content_id content_revision_id content_preview_id stage theme_overlay_id]
         condition = permanent ? " WHERE content_preview_id IS NULL" : ""

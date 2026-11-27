@@ -3,7 +3,7 @@
 module Railpress
   module NativeHost
     class Cli
-      COMMANDS = %w[supervise status authorize initialize preflight stage prepare-stage promote revert backup restore recovery-point].freeze
+      COMMANDS = %w[supervise status authorize initialize preflight stage prepare-stage promote revert backup restore recovery-point module-apply].freeze
       def self.parse(argv)
         args = argv.dup
         command = args.shift
@@ -32,6 +32,10 @@ module Railpress
           end
           { command: command, operation: operation, id: id, release_id: digest, confirmation: confirmation,
             snapshot_id: snapshot, loss_fingerprint: loss }
+        when "module-apply"
+          id, option, confirmation = args
+          raise Error, "native_cli_usage" unless args.length == 3 && option == "--confirm-deployment"
+          { command: command, id: NativeHost.uuid!(id), confirmation: NativeHost.uuid!(confirmation) }
         when "recovery-point"
           raise Error, "native_cli_usage" unless args.empty?
           { command: command }
@@ -82,6 +86,8 @@ module Railpress
           end
         when "authorize"
           result = @host.approve!(**@parsed.slice(:operation, :id, :release_id, :confirmation, :snapshot_id, :loss_fingerprint))
+        when "module-apply"
+          result = apply_module!
         when "recovery-point"
           status = @host.status
           raise Error, "active_release_unknown" if status["reconciliation_required"] || status["maintenance"]
@@ -108,6 +114,23 @@ module Railpress
         output.puts JSON.pretty_generate(result)
         result.is_a?(Hash) && result.dig("statement", "error") ? 2 : 0
       end
+      def apply_module!
+        unless %w[w03_bridge w04_recruitment w04_recruitment_final].include?(@config.data["test_database_profile"]) && @parsed[:confirmation] == @config.data["deployment_id"]
+          raise Error, "module_native_profile"
+        end
+        state = NativeHost.load_document(@config.path("host-journal.json"), maximum: 2_097_152)
+        id = Releases.identity!(state["active"])
+        slot = state.fetch("services").fetch(id).fetch("slot")
+        helper = File.join(@config.release(id), "bin", "railpress-native-module")
+        manifest, = Plan.new(@config).load!(id, trust: @host.trust, trust_state: state)
+        Plan.new(@config).tree!(id, manifest)
+        environment = @config.runtime_environment(id, slot: slot).merge("RAILPRESS_NATIVE_HOST_ROOT" => @config.root)
+        log = @config.path("logs", "module-#{@parsed[:id]}-#{SecureRandom.uuid}.log")
+        Commands.run([ @config.data["ruby_binary"], helper, @parsed[:id], @parsed[:confirmation] ],
+          env: environment, chdir: @config.release(id), log: log)
+        Releases.parse(F.read(log, maximum: 65_536).lines.last.to_s, limit: 65_536)
+      end
+
       def authorize_request!(request)
         @database.assert_installation! unless request["operation"] == "restore"
         id = NativeHost.uuid!(request["id"])

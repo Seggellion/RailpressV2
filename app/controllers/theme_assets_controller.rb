@@ -5,16 +5,18 @@ class ThemeAssetsController < ApplicationController
   end
   def show
     return head :upgrade_required if Rails.env.production? && !secure_transport?
-    package = ThemeInstallation.find_by!(theme_key: params[:theme_key], version: params[:version], digest: params[:digest])
-    preview = Themes::Selection.preview(current_user, session[:authentication_token], session[:theme_preview])
-    raise ActiveRecord::RecordNotFound unless package.ever_active_at || preview&.installation&.id == package.id
-    bundle = Themes::Storage.load(package, allow_removed: true)
-    asset = bundle.manifest["assets"].values.find { |entry| entry["file"] == "assets/#{params[:file]}" }
-    raise ActiveRecord::RecordNotFound unless asset
-    response.set_header("Cache-Control", package.ever_active_at ? "public, max-age=31536000, immutable" : "no-store")
-    response.set_header("X-Content-Type-Options", "nosniff")
-    response.set_header("Content-Security-Policy", "default-src 'none'; sandbox")
-    send_data bundle.files.fetch(asset["file"]), type: asset["content_type"], disposition: "inline"
+    package = selected_package
+    raise ActiveRecord::RecordNotFound unless package.ever_active_at
+    send_asset(package, preview: false)
+  end
+  def preview
+    response.set_header("Cache-Control", "no-store")
+    response.set_header("X-Robots-Tag", "noindex, nofollow")
+    return head :upgrade_required unless secure_transport?
+    pair = Themes::Selection.preview(current_user, session[:authentication_token], session[:theme_preview])
+    package = selected_package
+    raise ActiveRecord::RecordNotFound unless pair&.installation&.id == package.id
+    send_asset(package, preview: true)
   end
   def media
     return head :upgrade_required if Rails.env.production? && !secure_transport?
@@ -31,5 +33,22 @@ class ThemeAssetsController < ApplicationController
     send_data bytes, type: "image/png", disposition: "inline"
   rescue KeyError
     head :not_found
+  end
+
+  private
+
+  def selected_package
+    site = Site.find_by!(singleton_key: 1)
+    ThemeInstallation.find_by!(site: site, theme_key: params[:theme_key], version: params[:version], digest: params[:digest])
+  end
+
+  def send_asset(package, preview:)
+    bundle = Themes::Storage.load(package, allow_removed: !preview)
+    asset = bundle.manifest["assets"].values.find { |entry| entry["file"] == "assets/#{params[:file]}" }
+    raise ActiveRecord::RecordNotFound unless asset
+    response.set_header("Cache-Control", preview ? "no-store" : "public, max-age=31536000, immutable")
+    response.set_header("X-Content-Type-Options", "nosniff")
+    response.set_header("Content-Security-Policy", "default-src 'none'; sandbox")
+    send_data bundle.files.fetch(asset["file"]), type: asset["content_type"], disposition: "inline"
   end
 end

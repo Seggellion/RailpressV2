@@ -18,6 +18,7 @@ module AdminNavigationHelper
     when "admin/accounts" then "accounts"
     when "admin/privacy" then "privacy"
     when "admin/protected_features", "admin/updates" then "updates"
+    when "admin/modules" then "modules"
     when "admin/tools", "admin/exports", "admin/imports", "admin/site_exports" then "portability"
     when "admin/readiness" then "readiness"
     when "admin/official_news" then "official_news"

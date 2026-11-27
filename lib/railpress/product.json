@@ -4,7 +4,8 @@
   "channel": "alpha",
   "security_clock": 2,
   "theme_api": 1,
-  "schema": 14,
+  "extension_api": 1,
+  "schema": 16,
   "jobs": 1,
   "configuration": 2
 }

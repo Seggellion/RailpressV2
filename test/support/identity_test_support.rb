@@ -90,6 +90,8 @@ module IdentityTestSupport
     ThemePreview.delete_all
     ThemeState.delete_all
     ThemeOverlay.delete_all
+    SolidQueue::Job.where(class_name: "ValidateThemeUploadJob").delete_all
+    ThemeUpload.delete_all
     ThemeInstallation.delete_all
     ContentPreview.delete_all
     ContentRevision.delete_all

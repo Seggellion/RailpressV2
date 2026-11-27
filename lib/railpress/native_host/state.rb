@@ -24,7 +24,7 @@ module Railpress
             document["trust_generation"].is_a?(Integer) && document["utc_max"].is_a?(Numeric) &&
             document["revoked"].is_a?(Array) && document["expired"].is_a?(Array)
           import_staging!(document)
-          result = yield document
+          result = yield document, lock
           persist(document)
           F.atomic(marker, "native-host-v1\n") unless File.exist?(marker)
           result
