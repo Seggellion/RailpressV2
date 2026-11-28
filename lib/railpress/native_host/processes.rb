@@ -31,7 +31,11 @@ module Railpress
         launcher = File.expand_path("../../../bin/railpress-native-service", __dir__)
         log = File.open(@config.path("logs", "#{token}.log"), File::WRONLY | File::CREAT | File::EXCL, 0o600)
         argv = [ @config.data["ruby_binary"], launcher, @config.root, role, release_id, slot.to_s, token ]
-        pid = Process.spawn({ "PATH" => File.dirname(@config.data["ruby_binary"]) + ":/usr/bin:/bin", "HOME" => ENV.fetch("HOME") },
+        launcher_env = { "PATH" => File.dirname(@config.data["ruby_binary"]) + ":/usr/bin:/bin", "HOME" => ENV.fetch("HOME") }
+        if %w[w03_bridge w03_restore w03_reference w04_recruitment w04_recruitment_final].include?(@config.data["test_database_profile"])
+          launcher_env.merge!(ENV.slice("LD_LIBRARY_PATH", "GEM_PATH", "GEM_HOME"))
+        end
+        pid = Process.spawn(launcher_env,
           *argv, in: File::NULL, out: log, err: log, pgroup: true, unsetenv_others: true)
         Process.detach(pid)
         deadline = SecurityClock.elapsed + 10

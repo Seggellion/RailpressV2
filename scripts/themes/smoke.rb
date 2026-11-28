@@ -12,4 +12,7 @@ end
 Railpress::ThemePackage::FAMILIES.each do |family|
   Railpress::ThemeRenderer.render(bundle, Railpress::ThemeRenderer.fixture_context(family))
 end
+bundle.manifest.fetch("slots", {}).each_key do |slot|
+  Railpress::ThemeRenderer.render_slot(bundle, slot, Railpress::ThemeRenderer.fixture_presentation(slot))
+end
 puts JSON.generate(environment: "production", families: Railpress::ThemePackage::FAMILIES, database: "none", digest: bundle.digest)

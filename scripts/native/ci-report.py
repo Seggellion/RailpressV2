@@ -72,7 +72,8 @@ def main():
         'signed_release': False, 'production_qualified': False,
     }
     if passed:
-        archive_path = temp / 'railpress-ci-public-assets.zip' if engine == 'postgresql' else None
+        retain_main_assets = engine == 'postgresql' and result['source_ref'] == 'refs/heads/main'
+        archive_path = temp / 'railpress-ci-public-assets.zip' if retain_main_assets else None
         result.update(public_assets(Path('public/assets'), archive_path))
     serialized = json.dumps(result, indent=2) + '\n'
     (temp / 'railpress-ci-candidate.json').write_text(serialized)

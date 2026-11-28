@@ -17,8 +17,19 @@ module Railpress
         raise Error, "journal_proxy_mismatch" unless route["status"] == 200 &&
           observed == { "release_id" => state["active"], "generation" => state["generation"], "maintenance" => false } &&
           same_site?(report, edge)
-        raise Error, "installed_theme_continuity" unless report["themes"].is_a?(Array) &&
-          report["themes"].all? { |theme| manifest["compatibility"]["themes"].include?(theme) }
+        if manifest["format"] == "railpress.release.v2"
+          local = report["package_context"]
+          raise Error, "local_package_context_missing" unless local && local["site"] == config.data["install_id"] &&
+            local["core"] == current_manifest["version"] && local["fingerprint"] == report["engine_set_fingerprint"]
+          Releases::PackageContext.admit!(manifest, local)
+        else
+          raise Error, "installed_theme_continuity" unless report["themes"].is_a?(Array) &&
+            report["themes"].all? { |theme| manifest["compatibility"]["themes"].include?(theme) }
+          Releases::PackageContext.admit!(manifest, report["package_context"]) if report["package_context"]
+          if config.app_environment["RAILPRESS_EXTENSION_ROOT"] && !report["package_context"]
+            raise Error, "local_package_context_missing"
+          end
+        end
         c = manifest["compatibility"]
         { "ruby" => RUBY_VERSION, "rails" => Gem::Specification.find_by_name("rails").version.to_s }.each do |key, actual|
           raise Error, "incompatible_#{key}" unless Releases::Manifest.requirement!(c[key]).satisfied_by?(Gem::Version.new(actual))
@@ -35,13 +46,22 @@ module Railpress
           raise Error, "product_not_newer" unless Releases.compare_versions(manifest["version"], current_manifest["version"]).positive?
           schema = Schema.new(config)
           schema.revert_eligible!(manifest, plan["contract"])
-          schema.revert_eligible!(current_manifest, plan["contract"])
+          files = schema.file_plan?(plan["expand"])
+          schema.revert_eligible!(current_manifest, files ? state.fetch("contract") : plan["contract"])
           if plan["expand"]
-            raise Error, "schema_start_contract" unless [ plan["expand"]["schema_from"], plan["expand"]["schema_to"] ].include?(state.dig("contract", "schema"))
+            from = plan["expand"]["schema_from"]
+            allowed = files ? [ from ] : [ from, plan["expand"]["schema_to"] ]
+            raise Error, "schema_start_contract" unless allowed.include?(state.dig("contract", "schema"))
           else
             raise Error, "undeclared_schema_change" unless plan["contract"] == state["contract"]
           end
-          snapshot_ready!(state, policy)
+          if report["package_context"] && Releases::PackageContext.required?(report["package_context"])
+            require_relative "../recovery"
+            Railpress::Recovery::Disk.admit_promotion!(config: config, release: state["active"],
+              packages: report["package_context"], policy: policy, trust_state: state)
+          else
+            snapshot_ready!(state, policy)
+          end
         end
         require_admission!(state, request, manifest) if %w[promote revert].include?(request["operation"])
         expected = config.data.fetch("dependency_hashes")
@@ -82,11 +102,22 @@ module Railpress
         runtime.dependencies!(id, request["id"])
         state["releases"][id] = { "version" => manifest["version"], "contract" => plan["contract"], "plan_sha256" => request["plan_sha256"] }
         phase!(state, request, "STAGED")
+        file_expansion = false
         if request["operation"] == "promote" && plan["expand"]
-          request["schema_progress"] = Schema.new(config).apply!(plan["expand"], progress: ->(row) {
+          schema = Schema.new(config)
+          progress = ->(row) {
             request["schema_progress"] = row
             store.persist(state)
-          }, fault: @fault)
+          }
+          if schema.file_plan?(plan["expand"])
+            file_expansion = true
+            runtime.maintenance!(state, true)
+            runtime.stop_all_apps!(state)
+            schema.apply_files!(plan["expand"], manifest: manifest, candidate: id, predecessor: old_id, request_id: request["id"],
+              environment: config.runtime_environment(id, slot: slot), previous_progress: request["schema_progress"], progress: progress, fault: @fault)
+          else
+            request["schema_progress"] = schema.apply!(plan["expand"], progress: progress, fault: @fault)
+          end
           state["contract"] = plan["contract"]
         end
         phase!(state, request, "SCHEMA_EXPANDED")
@@ -100,9 +131,11 @@ module Railpress
         phase!(state, request, "READY")
         fresh_authorization!(state, request)
         raise Error, "candidate_worker_failed" unless runtime.processes.verified(state["services"].fetch(id)["worker"])
-        latest = runtime.probe.identity!(runtime.probe.health(slot: old_slot), old_id,
-          Plan.new(config).load!(old_id, trust: trust, trust_state: state).first)
-        raise Error, "concurrent_site_change" unless same_site?(request["before_report"], latest)
+        unless file_expansion
+          latest = runtime.probe.identity!(runtime.probe.health(slot: old_slot), old_id,
+            Plan.new(config).load!(old_id, trust: trust, trust_state: state).first)
+          raise Error, "concurrent_site_change" unless same_site?(request["before_report"], latest)
+        end
         request["pending"] = { "old" => old_id, "target" => id, "old_slot" => old_slot, "slot" => slot,
           "generation" => state["generation"] + 1, "authorized_cutover" => true }
         phase!(state, request, "SWITCHING")
@@ -112,7 +145,16 @@ module Railpress
         finish_switch!(state, request, manifest, plan)
       end
       def same_site?(left, right)
-        %w[installation_id theme business_fingerprints clock_binding].all? { |key| left[key] == right[key] }
+        keys = %w[installation_id theme business_fingerprints clock_binding]
+        return false unless keys.all? { |key| left[key] == right[key] }
+        if left["package_context"]
+          successor = right["package_context"]
+          return false unless successor
+          ignored = left["package_context"]["generation"].zero? ? %w[core anchor] : %w[core]
+          return false unless left["package_context"].except(*ignored) == successor.except(*ignored)
+        end
+        is_legacy = left["engine_set_fingerprint"].nil?
+        is_legacy || left["engine_set_fingerprint"] == right["engine_set_fingerprint"]
       end
       def finish_switch!(state, request, manifest, plan)
         pending = request.fetch("pending")
@@ -122,6 +164,7 @@ module Railpress
         raise Error, "candidate_worker_failed" unless runtime.processes.verified(state["services"].fetch(pending["target"])["worker"])
         runtime.stop_puma!(state, pending["old"])
         state["previous"], state["active"], state["generation"] = pending["old"], pending["target"], pending["generation"]
+        state["maintenance"] = false
         state["releases"][pending["target"]] = { "version" => manifest["version"], "contract" => plan["contract"], "plan_sha256" => request["plan_sha256"] }
         request["completed"] = true
         phase!(state, request, request["operation"] == "revert" ? "PREVIOUS_ACTIVE" : "ACTIVE")
@@ -141,6 +184,10 @@ module Railpress
         end
       end
       def failure!(state, request)
+        if %w[STARTED APPLIED].include?(request.dig("schema_progress", "state"))
+          require_recovery!(state, request, request["error"])
+          return
+        end
         if request["error"] == "journal_proxy_mismatch"
           require_recovery!(state, request, request["error"])
           return
@@ -205,6 +252,7 @@ module Railpress
         state["recovery_required"] = true
         begin
           runtime.maintenance!(state, true) if state["active"] && state["proxy"]
+          runtime.stop_all_apps!(state) if %w[STARTED APPLIED].include?(request.dig("schema_progress", "state"))
         rescue StandardError
           state["maintenance"] = nil
         end

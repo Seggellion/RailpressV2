@@ -1,0 +1,29 @@
+<% content_for :title, "Module request · Railpress" %>
+<h1>Module request</h1>
+<p><%= @operation.module_id %> <%= @operation.version %> · <%= @site.canonical_origin %></p>
+<p>Request <code><%= @operation.request_key %></code></p>
+<% running = @operation.state == "installed" && @installation&.package_sha256 == @operation.package_sha256 &&
+  Extensions::Activation.same_selection?(@installation, @registry) %>
+<% if running && Extensions::Activation.enabled?(@operation.module_id, registry: @registry) %>
+  <p role="status">Enabled</p>
+  <% entry = @registry.entries.fetch(@operation.module_id) %>
+  <% if entry.manifest.routes["admin"] && (path = Extensions::CatalogHandoff.setup_path(@operation)) %>
+    <p><%= link_to "Open local module setup", path %></p>
+  <% end %>
+  <% if entry.manifest.routes["public"] %>
+    <p><%= link_to "Open module", @registry.public_path(@operation.module_id) %></p>
+  <% end %>
+<% elsif running && !@installation.enabled? %>
+  <p role="status">Installed, disabled</p>
+  <%= button_to "Enable module", admin_enable_module_path(@operation.module_id), method: :patch,
+    params: { generation: @installation.activation_generation, installation_request: @operation.request_key } %>
+<% elsif @operation.state == "installed" %>
+  <p role="status">Held while the running package is verified.</p>
+<% else %>
+  <p role="status"><%= Extensions::CatalogHandoff::STATUS_MESSAGES.fetch(@operation.state) %></p>
+  <% if @operation.state == "awaiting_operator" %>
+    <p>Give this request ID to the site operator. The operator reviews and fulfills it through the supported native procedure.</p>
+    <%= button_to "Cancel request", admin_cancel_module_request_path(@operation.request_key) %>
+  <% end %>
+<% end %>
+<p><%= link_to "Back to Modules", admin_modules_path %></p>

@@ -3,6 +3,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      expected_review_sha:
+        description: Full commit SHA for a source-only review branch dispatch
+        type: string
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -16,6 +21,8 @@ jobs:
       matrix:
         engine: [postgresql, mysql2]
     runs-on: ubuntu-24.04
+    env:
+      RAILPRESS_CI_REVIEW_SHA: ${{ inputs.expected_review_sha }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -45,7 +52,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Retain verified public build assets
-        if: steps.receipt.outcome == 'success' && steps.qualify.outcome == 'success' && matrix.engine == 'postgresql'
+        if: github.ref == 'refs/heads/main' && steps.receipt.outcome == 'success' && steps.qualify.outcome == 'success' && matrix.engine == 'postgresql'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-qualified-public-assets

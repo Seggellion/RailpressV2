@@ -5,4 +5,4 @@
   <%= render "admin/updates/dusk_status", status: ::Releases::DuskStatus.call %>
 <% end %>
 <%= render "catalog" %>
-<section><h2>Operator staging</h2><p>Use <code>bin/railpress-theme</code> from the authorized host shell to validate a rights-cleared package and provision its operator trust key. Review the package's executable code and provenance before staging. The CLI documents its exact options.</p><p>Runtime ZIP upload, arbitrary package paths, web trust-key import and vendor editing are unavailable. A web role never grants arbitrary host commands.</p></section>
+<section><h2>Operator staging</h2><p>Use <code>bin/railpress-theme</code> from the authorized host shell to validate a rights-cleared package and provision its operator trust key. Review the package's executable code and provenance before staging. The CLI documents its exact options.</p><p>Upload a ZIP from an approved publisher using the form above. Manage publisher trust and stage package directories from the authorized host shell. A web role never grants arbitrary host commands.</p></section>

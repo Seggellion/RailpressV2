@@ -19,8 +19,34 @@ module Railpress
         runtime_hint = Filesystem.read(File.join(directory, ".ruby-version"), maximum: 80).strip
         raise Invalid, "incompatible_ruby_selector" unless runtime_hint == RUBY_VERSION
         product = Releases.parse(Filesystem.read(File.join(directory, "lib/railpress/product.json"), maximum: 4096), limit: 4096)
-        Releases.keys!(product, %w[format version channel security_clock theme_api schema jobs configuration])
-        raise Invalid, "product_compatibility" unless product["schema"] == Product::SCHEMA && product["jobs"] == Product::JOB_PAYLOAD && product["configuration"] == Product::CONFIGURATION
+        compatibility = manifest.fetch("compatibility")
+        bridge_path = "lib/railpress/#{ProductMetadata::BRIDGE}"
+        bridged = expected.key?(bridge_path)
+        if bridged
+          raise Invalid, "product_bridge_format" unless manifest["format"] == "railpress.release.v1"
+          predecessor_schema = product["schema"]
+          contract = Releases.parse(Filesystem.read(File.join(directory, bridge_path), maximum: 4096), limit: 4096)
+          product = ProductMetadata.apply(product, contract)
+          raise Invalid, "product_bridge_schema" unless %w[schema_read schema_write].all? { |field| predecessor_schema.between?(*compatibility.fetch(field)) }
+        end
+        Releases.keys!(product.except("extension_api"), %w[format version channel security_clock theme_api schema jobs configuration])
+        archived_alpha = manifest["channel"] == "alpha" && product["schema"].is_a?(Integer) &&
+          product["schema"].between?(1, Product::SCHEMA - 1) && Releases.compare_versions(manifest["version"], Product::VERSION) <= 0
+        if bridged || manifest["format"] == "railpress.release.v2" || archived_alpha
+          { "schema_read" => "schema", "schema_write" => "schema", "jobs_read" => "jobs", "jobs_write" => "jobs" }.each do |window, field|
+            actual = product[field]
+            raise Invalid, "product_compatibility" unless actual.is_a?(Integer) && actual.between?(*compatibility.fetch(window))
+          end
+        elsif product.values_at("schema", "jobs") != [ Product::SCHEMA, Product::JOB_PAYLOAD ]
+          raise Invalid, "product_compatibility"
+        end
+        unless product["configuration"] == Product::CONFIGURATION && product["configuration"] == compatibility["configuration"]
+          raise Invalid, "product_compatibility"
+        end
+        if manifest["format"] == "railpress.release.v2" || product.key?("extension_api")
+          api = manifest.dig("package_policy", "extension_api") || Product::EXTENSION_API
+          raise Invalid, "product_extension_api" unless product["extension_api"] == api
+        end
         lock = Filesystem.read(File.join(directory, "Gemfile.lock"), maximum: 8 * 1024 * 1024)
         locked_rails = lock[/^    rails \((\d+(?:\.\d+){1,3})\)$/, 1]
         raise Invalid, "locked_rails_incompatible" unless locked_rails && Manifest.requirement!(manifest["compatibility"]["rails"]).satisfied_by?(Gem::Version.new(locked_rails))
@@ -36,6 +62,8 @@ module Railpress
           raise Invalid, "missing_asset" unless expected.key?(name)
         end
         true
+      rescue ArgumentError
+        raise Invalid, "product_bridge_contract", cause: nil
       end
       def extract!(package, destination, manifest, capacity: Filesystem.method(:capacity!))
         bytes = Filesystem.read(package, maximum: Manifest::MAX_PACKAGE)

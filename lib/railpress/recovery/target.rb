@@ -5,11 +5,13 @@ module Railpress
     class Target
       attr_reader :root, :data, :registry_root, :profile
       def initialize(registry_root:, profile:, engine:, root:, db_tools:, install_id:)
-        raise Error, "fresh_profile" unless %w[gcs_source gcs_good gcs_bad gcs_focus gcs_full gcs_r1_target gcs_r2_target].include?(profile)
+        disk = %w[w03_bridge w03_restore w03_reference w03_restore_retry].include?(profile)
+        raise Error, "fresh_profile" unless disk || %w[gcs_source gcs_good gcs_bad gcs_focus gcs_full gcs_r1_target gcs_r2_target].include?(profile)
         @registry_root = File.realpath(registry_root)
         @profile = profile
         @root = F.directory!(root, private: true)
-        raise Error, "fresh_root_scope" unless @root.start_with?(@registry_root + "/.local/state/gcs-recovery/")
+        @scope = @registry_root + (disk ? "/.local/state/w03/" : "/.local/state/gcs-recovery/")
+        raise Error, "fresh_root_scope" unless @root.start_with?(@scope)
         NativeHost.uuid!(install_id)
         @data = { "engine" => engine, "db_tools" => db_tools, "install_id" => install_id }
         Releases.keys!(db_tools, %w[dump restore client])
@@ -33,7 +35,7 @@ module Railpress
       def database = NativeHost::Database.new(self)
       def lock!
         # Canonical DB/profile lock, independent of caller-selected receipt root.
-        directory = File.join(registry_root, ".local/state/gcs-recovery/locks")
+        directory = File.join(@scope, "locks")
         Dir.mkdir(directory, 0o700) unless File.exist?(directory)
         F.directory!(directory, private: true)
         lock = File.open(File.join(directory, "#{data['engine']}-#{profile}.lock"), File::RDWR | File::CREAT | File::NOFOLLOW, 0o600)

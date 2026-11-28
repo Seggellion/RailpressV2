@@ -21,14 +21,7 @@ module Themes
       path = Storage.install(bundle)
       report = Smoke.call(path)
       locked(actor) do |site, state|
-        if bundle.manifest["id"] == "dusk" && ThemeInstallation.where(site: site, theme_key: "dusk", version: bundle.manifest["version"]).where.not(digest: bundle.digest).exists?
-          raise Conflict, "dusk_version_digest_conflict"
-        end
-        package = ThemeInstallation.find_or_create_by!(site: site, theme_key: bundle.manifest["id"], version: bundle.manifest["version"], digest: bundle.digest) do |record|
-          record.manifest = bundle.manifest
-          record.smoke_report = report
-        end
-        raise Protected, "removed_identity" unless package.status == "validated"
+        package = catalog!(site, bundle, report)
         unless package.theme_overlays.exists?
           initial = Appearance.inherited_attributes(state, package, predecessor_id: predecessor_overlay_id)
           initial = initial.merge("artwork_style" => "none") if bundle.manifest["options"].key?("artwork_styles") && initial.any? && !initial.key?("artwork_style")
@@ -38,9 +31,46 @@ module Themes
         package
       end
     end
+    def stage_upload!(actor:, upload:, bundle:, publisher:, report:)
+      raise Protected, "smoke_required" unless report["digest"] == bundle.digest && report["environment"] == "production"
+      raise Protected, "upload_publisher_changed" unless Publishers.verify!(bundle) == publisher
+      Storage.install(bundle)
+      locked(actor) do |site, state|
+        upload.lock!
+        unless upload.site_id == site.id && upload.actor_id == actor.id && upload.actor_auth_version == actor.auth_version &&
+            upload.state == "staging" && upload.manifest_sha256 == bundle.digest && Publishers.verify!(bundle) == publisher
+          raise Protected, "upload_state_changed"
+        end
+        package = catalog!(site, bundle, report, publisher: publisher)
+        raise Conflict, "upload_catalog_source" unless package.upload_publisher == publisher
+        mapping = {}
+        unless package.theme_overlays.exists?
+          options, mapping = Appearance.map_upload(state, package)
+          overlay!(actor: actor, installation: package, attributes: options)
+        end
+        upload.update!(state: "staged", theme_installation: package, result_code: "validated", overlay_mapping: mapping)
+        Activity::Recorder.record!(actor: actor, action: "theme.stage", subject: package, details: { version: package.version, digest: package.digest })
+        package
+      end
+    end
+    def catalog!(site, bundle, report, publisher: nil)
+      candidates = ThemeInstallation.where(site: site, theme_key: bundle.manifest["id"], version: bundle.manifest["version"])
+      if candidates.where.not(digest: bundle.digest).exists?
+        code = bundle.manifest["id"] == "dusk" ? "dusk_version_digest_conflict" : "theme_version_digest_conflict"
+        raise Conflict, code
+      end
+      package = candidates.find_or_create_by!(digest: bundle.digest) do |record|
+        record.manifest = bundle.manifest
+        record.smoke_report = report
+        record.upload_publisher = publisher
+      end
+      raise Protected, "removed_identity" unless package.status == "validated"
+      package
+    end
     def overlay!(actor:, installation:, attributes:)
-      locked(actor) do |_site, _state|
+      locked(actor) do |site, _state|
         installation.lock!
+        raise ArgumentError, "wrong_site" unless installation.site_id == site.id
         bundle = Storage.load(installation)
         values = attributes.to_h.stringify_keys
         allowed = %w[palette font layout footer home_pattern logo_id favicon_id brand_label header_style footer_style]
@@ -84,15 +114,22 @@ module Themes
         overlay
       end
     end
-    def activate!(actor:, installation:, overlay:, version:, require_preview: true)
+    def activate!(actor:, installation:, overlay:, version:, require_preview: true, authentication_token: nil, credential: nil)
       locked(actor) do |_site, state|
         raise Conflict, "theme_state_changed" unless version.to_s == state.lock_version.to_s
         installation.lock!
         raise ArgumentError, "wrong_site" unless installation.site_id == state.site_id
         raise ArgumentError, "overlay_package" unless overlay.theme_installation_id == installation.id
-        Storage.load(installation)
-        if require_preview && !ThemePreview.where(actor: actor, theme_installation: installation, theme_overlay: overlay, auth_version: actor.auth_version).order(:id).any?(&:deadline_valid?)
-          raise Protected, "owner_preview_required"
+        bundle = Storage.load(installation)
+        Presentation.require_capabilities!(bundle.manifest)
+        if require_preview
+          record = if authentication_token || installation.upload_publisher
+            Selection.bound_record(actor, authentication_token, credential, state)
+          else
+            ThemePreview.where(actor: actor, theme_installation: installation, theme_overlay: overlay, auth_version: actor.auth_version,
+              state_version: state.lock_version, engine_fingerprint: Railpress::Extensions.registry.fingerprint).order(:id).detect(&:deadline_valid?)
+          end
+          raise Protected, "owner_preview_required" unless record && record.theme_installation_id == installation.id && record.theme_overlay_id == overlay.id
         end
         raise Protected, "smoke_required" unless installation.smoke_report["digest"] == installation.digest
         state.update!(previous_installation: state.active_installation, previous_overlay: state.active_overlay, active_installation: installation, active_overlay: overlay)
@@ -110,12 +147,16 @@ module Themes
       end
     end
     def preview!(actor:, installation:, overlay:, authentication_token:)
-      locked(actor) do |_site, _state|
+      locked(actor) do |site, state|
         raise ArgumentError, "valid_session_required" unless UserSession.resolve(authentication_token)&.user_id == actor.id && overlay.theme_installation_id == installation.id
+        raise ArgumentError, "wrong_site" unless installation.site_id == site.id
         Storage.load(installation)
         token = SecureRandom.hex(32)
         ThemePreview.where(actor: actor, session_digest: Digest::SHA256.hexdigest(authentication_token)).delete_all
-        ThemePreview.create!(actor: actor, theme_installation: installation, theme_overlay: overlay, token_digest: Digest::SHA256.hexdigest(token), session_digest: Digest::SHA256.hexdigest(authentication_token), auth_version: actor.auth_version, expires_at: 10.minutes.from_now)
+        ThemePreview.create!(actor: actor, theme_installation: installation, theme_overlay: overlay,
+          token_digest: Digest::SHA256.hexdigest(token), session_digest: Digest::SHA256.hexdigest(authentication_token),
+          auth_version: actor.auth_version, expires_at: ThemePreview::LIFETIME.from_now,
+          state_version: state.lock_version, engine_fingerprint: Railpress::Extensions.registry.fingerprint)
         Activity::Recorder.record!(actor: actor, action: "theme.preview", subject: installation, details: { revision: overlay.number })
         { "token" => token }
       end

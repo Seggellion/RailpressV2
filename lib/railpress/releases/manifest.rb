@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "package_context"
+
 module Railpress
   module Releases
     module Manifest
@@ -8,8 +10,11 @@ module Railpress
       REQUIRED = %w[db/schema_postgresql.rb db/schema_mysql2.rb scripts/themes/smoke.rb scripts/themes/navigation_contract_fixture.rb .ruby-version config.ru Rakefile bin/rake Gemfile Gemfile.lock LICENSE config/application.rb config/routes.rb bin/rails lib/railpress/product.rb lib/railpress/product.json lib/railpress/dusk.json lib/railpress/security_clock.rb public/assets/.manifest.json themes/dusk/assets/public.css themes/dusk/LICENSE.txt].concat(ThemePackage::FAMILIES.map { |family| "themes/dusk/templates/#{family}.html.erb" }).freeze
       module_function
       def validate!(value)
-        Releases.keys!(value, %w[format version channel sequence published_at expires_at package files compatibility changelog provenance])
-        raise Invalid, "manifest_format" unless value["format"] == "railpress.release.v1"
+        format = value.is_a?(Hash) && value["format"]
+        raise Invalid, "manifest_format" unless %w[railpress.release.v1 railpress.release.v2].include?(format)
+        keys = %w[format version channel sequence published_at expires_at package files compatibility changelog provenance]
+        keys << "package_policy" if format == "railpress.release.v2"
+        Releases.keys!(value, keys)
         raise Invalid, "product_semver" unless value["version"].is_a?(String) && value["version"].bytesize <= 80 && SEMVER.match?(value["version"])
         # Channel syntax is independent of production/signing authorization.
         channel = value["channel"]
@@ -43,7 +48,18 @@ module Railpress
         end
         raise Invalid, "expanded_limit" if total > MAX_EXPANDED
         compatibility!(value["compatibility"])
+        package_policy!(value) if format == "railpress.release.v2"
         value
+      end
+      def package_policy!(manifest)
+        policy = manifest.fetch("package_policy")
+        Releases.keys!(policy, %w[extension_api predecessor dusk])
+        Releases.integer!(policy["extension_api"], 1, 1000)
+        PackageContext.version_window!(policy["predecessor"])
+        dusk = policy["dusk"]
+        Releases.keys!(dusk, %w[id version digest])
+        raise Invalid, "bundled_dusk_identity" unless dusk["id"] == "dusk" && manifest["compatibility"]["themes"].include?(dusk)
+        raise Invalid, "package_reader_required" unless manifest["files"].key?("lib/railpress/releases/package_context.rb")
       end
       def compatibility!(c)
         Releases.keys!(c, %w[ruby rails databases schema_read schema_write jobs_read jobs_write theme_api themes configuration security_clock native_profile prior_versions assets_sha256])
@@ -83,7 +99,14 @@ module Railpress
         end
         { "theme_api" => Product::THEME_API, "configuration" => Product::CONFIGURATION, "security_clock" => Product::SECURITY_CLOCK }.each { |field, version| raise Invalid, "incompatible_#{field}" unless c[field] == version }
         raise Invalid, "prior_release" unless c["prior_versions"].include?(Product::VERSION)
-        raise Invalid, "theme_continuity" unless context["themes"].is_a?(Array) && context["themes"].all? { |row| c["themes"].include?(row) }
+        local = context["packages"]
+        if m["format"] == "railpress.release.v2"
+          raise Invalid, "local_package_context_missing" unless local
+          raise Invalid, "package_context_core" unless local["core"] == Product::VERSION
+        else
+          raise Invalid, "theme_continuity" unless context["themes"].is_a?(Array) && context["themes"].all? { |row| c["themes"].include?(row) }
+        end
+        PackageContext.admit!(m, local) if local
         raise Invalid, "unsupported_host" unless context["native_profile"] == Product::NATIVE_PROFILE && RUBY_PLATFORM.include?("linux")
         raise Invalid, "product_not_newer" unless Releases.compare_versions(m["version"], Product::VERSION).positive?
         true

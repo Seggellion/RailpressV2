@@ -8,12 +8,14 @@ require "pathname"
 require "zlib"
 require_relative "image_input"
 require_relative "theme_webp"
+require_relative "product"
 
 module Railpress
   module ThemePackage
     class Invalid < StandardError; end
     API = 1
     FAMILIES = %w[front home page post archive taxonomy search empty not_found navigation pagination media footer].freeze
+    SLOTS = %w[directory_page candidate_card public_profile].freeze
     MAX_BYTES = 2 * 1024 * 1024
     MAX_FILES = 48
     ID = /\A[a-z][a-z0-9-]{1,39}\z/
@@ -52,20 +54,24 @@ module Railpress
     def keys!(object, keys)
       raise Invalid, "unknown_or_missing_fields" unless object.is_a?(Hash) && object.keys.sort == keys.sort
     end
-    def manifest!(object)
+    def manifest!(object, runtime_core: Product::VERSION)
       required = %w[format schema_version theme_api id version name description license authors provenance compatibility templates assets files options]
-      keys!(object, required + (object.is_a?(Hash) && object.key?("menu_locations") ? [ "menu_locations" ] : []))
+      optional = [ "menu_locations" ]
+      optional += %w[extension_presentation_api slots requires] if object.is_a?(Hash) && object["schema_version"] == 2
+      keys!(object, required + optional.select { |key| object.is_a?(Hash) && object.key?(key) })
       if object.key?("menu_locations")
         slots = object["menu_locations"]
         raise Invalid, "menu_locations" unless slots.is_a?(Hash) && slots.length.between?(1, 4) && (slots.keys - %w[primary mobile footer documentation]).empty? && slots.values.all? { |label| label.is_a?(String) && label.valid_encoding? && label.length.between?(1, 80) && !label.match?(/[\x00-\x1f\x7f<>]/) }
       end
-      raise Invalid, "format_or_api" unless object["format"] == "railpress.theme" && object["schema_version"] == 1 && object["theme_api"] == API
+      raise Invalid, "format_or_api" unless object["format"] == "railpress.theme" && [ 1, 2 ].include?(object["schema_version"]) && object["theme_api"] == API
       identity!(object["id"], object["version"])
       %w[name description provenance].each { |key| raise Invalid, "metadata" unless object[key].is_a?(String) && object[key].length.between?(1, 1000) && object[key].valid_encoding? }
       raise Invalid, "license" unless object["license"] == "MIT"
       raise Invalid, "authors" unless object["authors"].is_a?(Array) && object["authors"].length.between?(1, 8) && object["authors"].all? { |author| author.is_a?(String) && author.length.between?(1, 100) }
-      keys!(object["compatibility"], %w[core_api ruby_min])
+      v2 = object["schema_version"] == 2
+      keys!(object["compatibility"], %w[core_api ruby_min] + (v2 ? [ "core" ] : []))
       raise Invalid, "incompatible" unless object["compatibility"]["core_api"] == 1 && object["compatibility"]["ruby_min"].is_a?(String) && object["compatibility"]["ruby_min"].match?(/\A\d+\.\d+\.\d+\z/) && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(object["compatibility"]["ruby_min"])
+      validate_presentation!(object, runtime_core: runtime_core) if v2
       keys!(object["templates"], FAMILIES)
       object["templates"].each { |family, path| raise Invalid, "protected_or_unknown_template" unless path == "templates/#{family}.html.erb" }
       option_keys = %w[palettes fonts layouts home_patterns]
@@ -91,12 +97,46 @@ module Railpress
         raise Invalid, "asset_metadata" unless asset["sha256"].is_a?(String) && SHA.match?(asset["sha256"]) && asset["byte_size"].is_a?(Integer) && asset["byte_size"].between?(1, 1_048_576) && asset["content_type"] == expected_type
       end
       raise Invalid, "stylesheet_required" unless object["assets"].values.any? { |asset| asset["content_type"] == "text/css" }
-      expected = [ "LICENSE.txt", *object["templates"].values, *object["assets"].values.map { |asset| asset["file"] } ]
+      expected = [ "LICENSE.txt", *object["templates"].values, *object.fetch("slots", {}).values, *object["assets"].values.map { |asset| asset["file"] } ]
       raise Invalid, "duplicate_asset_path" unless expected.uniq == expected
       raise Invalid, "file_map" unless object["files"].is_a?(Hash) && object["files"].keys.sort == expected.sort && object["files"].values.all? { |sha| sha.is_a?(String) && SHA.match?(sha) }
       object
     rescue ArgumentError, TypeError, NoMethodError
       raise Invalid, "malformed_manifest"
+    end
+    def validate_presentation!(manifest, runtime_core:)
+      raise Invalid, "incompatible_core" unless version_allowed?(manifest.dig("compatibility", "core"), runtime_core)
+      if manifest.key?("extension_presentation_api")
+        raise Invalid, "presentation_api" unless manifest["extension_presentation_api"] == 1
+      end
+      slots = manifest.fetch("slots", {})
+      raise Invalid, "presentation_slots" unless slots.is_a?(Hash) && (slots.keys - SLOTS).empty? &&
+        (slots.empty? || manifest["extension_presentation_api"] == 1)
+      slots.each do |slot, path|
+        raise Invalid, "presentation_slot_path" unless path == "templates/slots/#{slot}.html.erb"
+      end
+      requires = manifest.fetch("requires", {})
+      raise Invalid, "presentation_dependencies" unless requires.is_a?(Hash) && requires.length <= 8
+      requires.each do |capability, range|
+        unless capability.match?(/\A[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.[a-z][a-z0-9_-]{0,30}(?:\.[a-z][a-z0-9_-]{0,30}){0,2}\z/) && capability.split(".").first.length <= 30
+          raise Invalid, "presentation_capability"
+        end
+        version_window!(range)
+      end
+    end
+    def version_window!(range)
+      keys!(range, %w[min max_exclusive])
+      range.each_value do |version|
+        raise Invalid, "incompatible_version" unless version.is_a?(String) && version.bytesize <= 80 && VERSION.match?(version)
+      end
+      endpoints = range.values_at("min", "max_exclusive").map { |version| Gem::Version.new(version) }
+      raise Invalid, "incompatible_version" unless endpoints.first < endpoints.last
+      endpoints
+    end
+    def version_allowed?(range, version)
+      minimum, maximum = version_window!(range)
+      value = Gem::Version.new(version)
+      value >= minimum && value < maximum
     end
     def read_file(path, maximum)
       raise Invalid, "symlink_or_nonfile" unless File.lstat(path).file? && !File.symlink?(path)
@@ -109,7 +149,7 @@ module Railpress
     rescue Errno::ENOENT, Errno::ELOOP, Errno::EACCES
       raise Invalid, "unreadable_package"
     end
-    def load(directory, trusted_keys:)
+    def load(directory, trusted_keys:, runtime_core: Product::VERSION)
       root = File.expand_path(directory)
       raise Invalid, "directory_package_required" unless File.directory?(root) && !File.symlink?(root)
       paths = []
@@ -120,7 +160,7 @@ module Railpress
           raise Invalid, "symlink" if stat.symlink?
           relative = path.delete_prefix(root + "/")
           if stat.directory?
-            raise Invalid, "directory_path" unless %w[templates assets].include?(relative)
+            raise Invalid, "directory_path" unless %w[templates templates/slots assets].include?(relative)
             scan.call(path)
           elsif stat.file?
             paths << relative
@@ -134,7 +174,7 @@ module Railpress
       normalized = paths.map { |path| path.unicode_normalize(:nfc).downcase }
       raise Invalid, "duplicate_normalized_path" unless normalized.uniq == normalized
       manifest_bytes = read_file(File.join(root, "manifest.json"), 65_536)
-      manifest = manifest!(parse(manifest_bytes))
+      manifest = manifest!(parse(manifest_bytes), runtime_core: runtime_core)
       signature_bytes = read_file(File.join(root, "signature.json"), 2048)
       signature = parse(signature_bytes)
       keys!(signature, %w[algorithm key_id signature])
@@ -159,7 +199,7 @@ module Railpress
       end
       notice = bytes.fetch("LICENSE.txt")
       raise Invalid, "license_notice" unless notice.include?("MIT License") && notice.include?("Permission is hereby granted") && notice.include?("Copyright")
-      manifest["templates"].values.each do |path|
+      (manifest["templates"].values + manifest.fetch("slots", {}).values).each do |path|
         raise Invalid, "template_encoding_or_size" unless bytes[path].dup.force_encoding("UTF-8").valid_encoding? && bytes[path].bytesize.between?(1, 65_536)
       end
       manifest["assets"].each_value do |asset|

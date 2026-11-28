@@ -50,7 +50,9 @@ if command == "doctor"
   ENV["RAILPRESS_READ_ONLY_DOCTOR"] = "1"
   abort "No extra arguments permitted; doctor does not perform repairs" unless ARGV.empty?
   require_relative "../config/environment"
-  puts JSON.pretty_generate(Installation::Cli.doctor(state))
+  puts JSON.pretty_generate(Installation::Cli.doctor(state).merge(
+    "extension_api" => Railpress::Product::EXTENSION_API,
+    "engine_set_fingerprint" => Railpress::Extensions.registry.fingerprint))
   exit 0
 end
 abort "Interactive terminal required; secrets/passwords must not enter command arguments or logs" unless $stdin.tty? && $stdout.tty?

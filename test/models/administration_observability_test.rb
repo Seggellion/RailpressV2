@@ -16,7 +16,7 @@ class AdministrationObservabilityTest < ActiveSupport::TestCase
   test "declarative leaves are real protected routes with exact role subsets" do
     Administration::Navigation.validate!
     owner = Administration::Navigation.for(@owner).flat_map(&:last).map(&:key)
-    assert_equal %w[dashboard pages posts categories tags media themes customize menus seo users settings accounts privacy updates official_news portability readiness activity], owner
+    assert_equal %w[dashboard pages posts categories tags media themes customize menus seo users settings accounts privacy updates modules official_news portability readiness activity], owner
     expected = { @admin => %w[dashboard pages posts categories tags media menus readiness activity],
       @editor => %w[dashboard pages posts categories tags media activity],
       @author => %w[dashboard pages posts media activity] }

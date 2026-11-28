@@ -17,6 +17,10 @@ module Railpress
       raise "Native canary retention capacity" if Dir.children(root).length >= 512
       result = { "nonce" => row.key_name, "version" => Railpress::Product::VERSION, "job_contract" => 1,
         "deployment_id" => deployment, "count" => row.payload.fetch("count"), "completed_elapsed" => Railpress::SecurityClock.elapsed }
+      if defined?(Railpress::Extensions)
+        result["engine_set_fingerprint"] = Railpress::Extensions.registry.fingerprint
+        result["pid"] = Process.pid
+      end
       # The predecessor already provides the reviewed atomic private file writer.
       Railpress::Releases::Filesystem.atomic(File.join(root, "#{row.key_name}.json"), JSON.generate(result))
     end

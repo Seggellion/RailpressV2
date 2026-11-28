@@ -21,10 +21,13 @@ class SessionsController < ApplicationController
       @error = "The username/email or password was not recognized."
       return render :new, status: :unprocessable_entity
     end
+    handoff = if user.owner? && (intent = session[:module_catalog_intent])
+      Extensions::CatalogHandoff.sign_in_return(intent, site: Site.find_by!(singleton_key: 1), base_url: request.base_url)
+    end
     token = UserSession.issue!(user, replacing: session[:authentication_token])
     reset_session
     session[:authentication_token] = token
-    redirect_to admin_path, status: :see_other
+    redirect_to(handoff ? admin_module_catalog_path(handoff) : admin_path, status: :see_other)
   rescue UserSession::StaleIdentity
     @error = "The username/email or password was not recognized."
     render :new, status: :unprocessable_entity

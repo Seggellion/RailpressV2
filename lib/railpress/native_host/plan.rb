@@ -28,6 +28,11 @@ module Railpress
         Schema.new(@config).validate!(plan["expand"]) if plan["expand"]
         if plan["expand"]
           raise Error, "expand_contract" unless plan["expand"]["schema_to"] == contract["schema"] && plan["expand"]["write_contract"] == contract["write"]
+          if Schema.new(@config).file_plan?(plan["expand"])
+            raise Error, "native_expand_binding" unless plan["expand"]["release"] == id &&
+              plan["predecessors"] == [ plan["expand"]["predecessor"] ] &&
+              contract["jobs"].between?(*plan["expand"]["jobs_read"]) && contract["jobs"].between?(*plan["expand"]["jobs_write"])
+          end
         end
         routes = plan["routes"]
         raise Error, "native_route_matrix" unless routes.is_a?(Array) && routes.length.between?(1, 32)

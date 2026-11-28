@@ -1,0 +1,30 @@
+<section aria-labelledby="theme-upload-heading">
+  <h2 id="theme-upload-heading">Upload a theme ZIP</h2>
+  <%= form_with url: admin_theme_uploads_path, multipart: true, data: { turbo: false } do |form| %>
+    <%= form.label :theme_zip, "Trusted theme ZIP" %>
+    <%= form.file_field :theme_zip, accept: ".zip,application/zip", required: true, aria: { describedby: "theme-zip-help" } %>
+    <p id="theme-zip-help">Up to 4 MiB from a publisher already approved by your site operator.</p>
+    <%= form.submit "Upload for validation" %>
+  <% end %>
+  <% if @uploads.any? %>
+    <h3>Upload history</h3>
+    <ul>
+      <% @uploads.each do |upload| %>
+        <li>
+          <strong><%= upload.state.humanize %></strong>
+          <% if upload.theme_installation %><%= upload.theme_installation.public_identity %><% end %>
+          <% if upload.result_code %><span><%= upload.result_code.humanize %></span><% end %>
+          <% if upload.overlay_mapping&.fetch("from_overlay", nil) %>
+            <p>Overlay options kept: <%= upload.overlay_mapping.fetch("mapped").map(&:humanize).to_sentence %>.</p>
+            <% if upload.overlay_mapping.fetch("reset").any? %>
+              <p>Default options applied: <%= upload.overlay_mapping.fetch("reset").map(&:humanize).to_sentence %>.</p>
+            <% end %>
+          <% end %>
+          <% if upload.actor_id == current_user.id && ThemeUpload::RESUMABLE.include?(upload.state) %>
+            <%= button_to "Resume validation", admin_resume_theme_upload_path(upload) %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

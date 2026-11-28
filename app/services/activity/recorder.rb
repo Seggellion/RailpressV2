@@ -9,11 +9,12 @@ module Activity
       "media" => [ "media", %w[upload update purge] ],
       "menu" => [ "navigation", %w[create rename add update remove move reorder reparent assign publish undo delete import_tree] ],
       "portability" => [ "operations", %w[export_requested export_downloaded import_received stage_approved activation_approved reversal_approved approval_renewed] ],
-      "theme" => [ "appearance", %w[stage overlay preview activate revert remove] ],
+      "theme" => [ "appearance", %w[stage overlay preview activate revert remove upload] ],
       "identity" => [ "identity", %w[user_created role_changed user_removed site_updated membership_configured] ],
       "security" => [ "security", %w[login logout login_failed rate_limited password_changed denied] ],
       "seo" => [ "seo", %w[requested] ],
       "release" => [ "operations", %w[unsupported requested completed checks] ],
+      "extension" => [ "operations", %w[requested operator_status enabled disabled cancelled] ],
       "export" => [ "operations", %w[manifest] ],
       "readiness" => [ "operations", %w[requested completed cancelled] ],
       "news" => [ "operations", %w[enable disable clear refresh provider_enable provider_disable reviewed] ]

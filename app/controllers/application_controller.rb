@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "ipaddr"
 class ApplicationController < ActionController::Base
   layout "core"
   protect_from_forgery with: :exception, prepend: true
@@ -55,14 +54,10 @@ class ApplicationController < ActionController::Base
     render_core_error("HTTPS is required for setup and account access.", status: :upgrade_required) unless secure_transport?
   end
   def trusted_tls_proxy?
-    peer = request.get_header("REMOTE_ADDR")
-    ENV.fetch("RAILPRESS_TLS_PROXY_IPS", "").split(",").any? { |entry| IPAddr.new(entry.strip).include?(peer.to_s) }
-  rescue IPAddr::InvalidAddressError
-    false
+    Railpress::SecureTransport.trusted_proxy?(request.env)
   end
   def secure_transport?
-    %w[https on 1].include?(request.get_header("HTTPS").to_s.downcase) ||
-      (trusted_tls_proxy? && request.get_header("HTTP_X_FORWARDED_PROTO") == "https")
+    Railpress::SecureTransport.secure?(request.env)
   end
   def client_address
     trusted_tls_proxy? ? request.remote_ip : request.get_header("REMOTE_ADDR").to_s

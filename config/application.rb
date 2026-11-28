@@ -2,6 +2,7 @@ require_relative "boot"
 
 require "rails"
 require_relative "../lib/railpress/upload_body_limit"
+require_relative "../lib/railpress/theme_upload_limit"
 require_relative "../lib/railpress/image_input"
 require_relative "../lib/railpress/anonymous_privacy"
 # Pick the frameworks you want:
@@ -21,8 +22,12 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+require_relative "../lib/railpress/extensions"
+Railpress::Extensions.boot!(app_root: File.expand_path("..", __dir__), environment: Rails.env)
+
 module Railpress
   class Application < Rails::Application
+    config.middleware.insert_before 0, Railpress::ThemeUploadLimit
     config.middleware.insert_before ActionDispatch::Executor, Railpress::UploadBodyLimit
     config.middleware.insert_before ActionDispatch::ShowExceptions, Railpress::AnonymousPrivacy
     # M04 will introduce authenticated validated media routes; framework uploads stay closed.

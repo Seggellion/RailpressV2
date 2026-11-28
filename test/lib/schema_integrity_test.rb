@@ -33,8 +33,13 @@ class SchemaIntegrityTest < ActiveSupport::TestCase
   test "native schema exactly enforces the engine foreign key contract" do
     assert TestSchemaIntegrity.verify!
     expected = TestSchemaIntegrity.expected(ENV.fetch("RAILPRESS_TEST_ENGINE"))
-    assert_equal 92, expected.size
+    assert_equal 97, expected.size
+    %w[extension_install_requests extension_installations extension_migration_records].each do |table|
+      assert_includes expected, [ table, "sites", [ "site_id" ], [ "id" ], "restrict" ]
+    end
     assert_includes expected, [ "theme_overlays", "users", [ "author_id" ], [ "id" ], "restrict" ]
+    assert_includes expected, [ "theme_uploads", "sites", [ "site_id" ], [ "id" ], "restrict" ]
+    assert_includes expected, [ "theme_uploads", "theme_installations", [ "theme_installation_id" ], [ "id" ], "restrict" ]
   end
 
   test "real orphan inserts are rejected by native constraints in a transaction" do

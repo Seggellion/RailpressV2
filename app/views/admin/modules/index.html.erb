@@ -1,0 +1,61 @@
+<h1>Modules</h1>
+<p>Extension API <%= Railpress::Product::EXTENSION_API %></p>
+
+<% @installations.each_value do |installation| %>
+  <section>
+    <h2><%= installation.module_id %> <%= installation.version %></h2>
+    <p>Activation generation <%= installation.activation_generation %></p>
+    <% running = installation.package_state == "installed" && Extensions::Activation.same_selection?(installation, @registry) %>
+    <% available = running && installation.enabled && Extensions::Activation.enabled?(installation.module_id, registry: @registry) %>
+    <% if installation.package_state == "retained" %>
+      <p>Uninstalled. Module data retained.</p>
+    <% elsif !running || (installation.enabled && !available) %>
+      <p>Held while the running engine or its dependencies are verified.</p>
+    <% else %>
+      <p><%= available ? "Enabled" : "Installed, disabled" %></p>
+    <% end %>
+    <% if installation.package_state == "installed" && (running || installation.enabled) %>
+      <%= button_to(installation.enabled ? "Disable" : "Enable",
+        installation.enabled ? admin_disable_module_path(installation.module_id) : admin_enable_module_path(installation.module_id),
+        method: :patch, params: { generation: installation.activation_generation }) %>
+    <% end %>
+    <% entry = @registry.entries[installation.module_id] %>
+    <% if available && entry.manifest.routes["navigation"] %>
+      <p><%= link_to entry.manifest.routes["navigation"], @registry.admin_path(installation.module_id) %></p>
+    <% end %>
+  </section>
+<% end %>
+
+<% if @registry.entries.empty? && @installations.empty? %>
+  <p>No module packages are admitted on this site.</p>
+<% end %>
+
+<% if @requests.any? %>
+  <h2>Requests</h2>
+  <ul>
+    <% @requests.each do |operation| %>
+      <li>
+        <%= operation.module_id %> <%= operation.version %>:
+        <%= operation.state == "awaiting_operator" ? "Awaiting operator installation" : operation.state.humanize %>
+        <%= link_to operation.request_key, admin_module_request_path(operation.request_key) %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<h2>Request a module operation</h2>
+<p>Use the exact version and digests reviewed with your site operator. This saves a request for the operator.</p>
+<%= form_with url: admin_modules_path, scope: :selection do |form| %>
+  <%= form.hidden_field :request_key, value: SecureRandom.uuid %>
+  <%= form.hidden_field :engine_generation, value: @registry.generation %>
+  <%= form.hidden_field :engine_fingerprint, value: @registry.fingerprint %>
+  <p><%= form.label :operation %> <%= form.select :operation, ExtensionInstallRequest::OPERATIONS %></p>
+  <p><%= form.label :module_id %> <%= form.text_field :module_id, required: true, maxlength: 30 %></p>
+  <p><%= form.label :version %> <%= form.text_field :version, required: true, maxlength: 80 %></p>
+  <p><%= form.label :package_sha256, "Package SHA-256" %> <%= form.text_field :package_sha256, required: true, maxlength: 64 %></p>
+  <p><%= form.label :manifest_sha256, "Manifest SHA-256" %> <%= form.text_field :manifest_sha256, required: true, maxlength: 64 %></p>
+  <p><%= form.label :plan_sha256, "Migration plan SHA-256" %> <%= form.text_field :plan_sha256, required: true, maxlength: 64 %></p>
+  <p><%= form.label :activation_generation, "Activation generation (0 for a new module)" %>
+    <%= form.number_field :activation_generation, min: 0, value: 0, required: true %></p>
+  <%= form.submit "Request operator action" %>
+<% end %>

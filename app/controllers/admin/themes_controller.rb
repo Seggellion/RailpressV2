@@ -7,13 +7,26 @@ module Admin
     rescue_from Railpress::ThemePackage::Invalid, ArgumentError, ActiveRecord::RecordNotFound do
       render_core_error("Theme validation failed. The current theme was preserved.", status: :unprocessable_entity)
     end
+    rescue_from Themes::UploadStorage::Unavailable do
+      render_core_error("Private theme upload storage is unavailable.", status: :service_unavailable)
+    end
     def customize
       index
     end
     def index
-      @state = ThemeState.find_by(site: Site.find_by!(singleton_key: 1))
-      @packages = ThemeInstallation.where(status: "validated").order(:theme_key, :version, :digest).limit(100)
+      site = Site.find_by!(singleton_key: 1)
+      @state = ThemeState.find_by(site: site)
+      @packages = ThemeInstallation.where(site: site, status: "validated").order(:theme_key, :version, :digest).limit(100)
+      @uploads = Themes::Uploads.site_uploads(site).order(id: :desc).limit(20)
       @theme_media = MediaLibrary::Policy.scope(current_user).ready.where(content_type: "image/png").where("width <= 1024 AND height <= 1024").where.not(alt_text: "").order(:title).limit(100).map { |asset| [ asset.title, asset.id ] }
+    end
+    def upload
+      Themes::Uploads.submit!(actor: current_user, input: params[:theme_zip])
+      redirect_to admin_themes_path, status: :see_other, notice: "Theme ZIP received for validation."
+    end
+    def resume_upload
+      Themes::Uploads.resume!(actor: current_user, id: params[:id])
+      redirect_to admin_themes_path, status: :see_other, notice: "Theme validation queued."
     end
     def overlay
       package = ThemeInstallation.find(params[:id])
@@ -36,7 +49,8 @@ module Admin
     end
     def activate
       package = ThemeInstallation.find(params[:id])
-      Themes::Manager.activate!(actor: current_user, installation: package, overlay: package.theme_overlays.find(params[:overlay_id]), version: params[:version])
+      Themes::Manager.activate!(actor: current_user, installation: package, overlay: package.theme_overlays.find(params[:overlay_id]), version: params[:version],
+        authentication_token: session[:authentication_token], credential: session[:theme_preview])
       redirect_to admin_themes_path, status: :see_other
     end
     def revert

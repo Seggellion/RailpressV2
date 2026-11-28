@@ -1,6 +1,7 @@
 <p>Active: <strong><%= @state&.active_installation&.public_identity || "Core compatibility renderer; no signed default provisioned" %></strong>.</p>
 <p>Previous: <%= @state&.previous_installation&.public_identity || "None" %>. State version: <%= @state&.lock_version || 0 %>.</p>
 <%= button_to "Stop my preview", admin_themes_stop_preview_path %>
+<%= render "admin/themes/uploads" %>
 <% if @state&.previous_installation %><%= button_to "Revert to retained package", admin_themes_revert_path, params: { version: @state.lock_version } %><% end %>
 <% if @packages.empty? %><p>No validated packages are staged. Ask the operator to provision the signed Dusk package. Core administration remains available.</p><% end %>
 <% @packages.each do |package| %>
@@ -11,7 +12,7 @@
 <% package.theme_overlays.order(number: :desc).limit(50).each do |overlay| %>
 <div class="overlay-card"><p><strong>Overlay <%= overlay.number %></strong> · <%= overlay.created_at.iso8601 %><%= " · active" if @state&.active_overlay_id == overlay.id %></p>
 <details><summary>Saved options</summary><dl><% overlay.options.each do |key, value| %><dt><%= key.humanize %></dt><dd><%= value %></dd><% end %></dl></details>
-<div class="admin-actions"><%= button_to "Preview overlay #{overlay.number}", preview_admin_theme_path(package), params: { overlay_id: overlay.id } %><%= button_to "Activate overlay #{overlay.number}", activate_admin_theme_path(package), params: { overlay_id: overlay.id, version: @state&.lock_version || 0 } %></div></div>
+<div class="admin-actions"><%= button_to "Preview overlay #{overlay.number}", preview_admin_theme_path(package), params: { overlay_id: overlay.id } %><%= button_to "Publish overlay #{overlay.number}", activate_admin_theme_path(package), params: { overlay_id: overlay.id, version: @state&.lock_version || 0 } %></div></div>
 <% end %>
 <p>Latest 50 overlays shown. Preview requires your current signed-in owner session; activation requires your unexpired preview receipt. Other visitors continue to see the active published theme.</p>
 <details <%= "open" if action_name == "customize" %>><summary>Create a customization overlay</summary>

@@ -1,0 +1,41 @@
+<% content_for :title, "Review module installation · Railpress" %>
+<h1>Review module installation</h1>
+<p><strong><%= @site.title %></strong> · <%= @site.canonical_origin %></p>
+<p>Core <%= Railpress::Product::VERSION %> · Extension API <%= Railpress::Product::EXTENSION_API %></p>
+<% if @installation %>
+  <p>Local package <%= @installation.module_id %> <%= @installation.version %>.</p>
+  <% if @installation.package_state == "retained" %>
+    <p>Uninstalled. Module data retained.</p>
+  <% elsif Extensions::Activation.enabled?(@installation.module_id, registry: @registry) %>
+    <p>Enabled</p>
+  <% elsif Extensions::Activation.same_selection?(@installation, @registry) && !@installation.enabled? %>
+    <p>Installed, disabled</p>
+  <% else %>
+    <p>Held while the running package is verified.</p>
+  <% end %>
+  <%= link_to "Manage the local module", admin_modules_path %>
+<% end %>
+<% if @request %>
+  <p><%= link_to "View the latest request for this module", admin_module_request_path(@request.request_key) %></p>
+<% end %>
+<% if @hold %><p role="status"><%= @hold %></p><% end %>
+<% if @offer %>
+  <h2><%= @offer.fetch("name") %> <%= @offer.fetch("version") %></h2>
+  <p><%= @offer.fetch("summary") %></p>
+  <dl>
+    <dt>Catalog publisher label</dt><dd><%= @offer.fetch("publisher") %></dd>
+    <dt>License</dt><dd><%= @offer.fetch("license") %></dd>
+    <dt>Archive SHA-256</dt><dd class="module-digest"><%= @offer.fetch("package_sha256") %></dd>
+    <dt>Manifest SHA-256</dt><dd class="module-digest"><%= @offer.fetch("manifest_sha256") %></dd>
+    <dt>Migration plan SHA-256</dt><dd class="module-digest"><%= @offer.fetch("plan_sha256") %></dd>
+    <dt>Declared capabilities</dt><dd><%= @entry.manifest.data["provides"].presence&.to_sentence || "None" %></dd>
+    <dt>Additional permissions</dt><dd><%= @entry.manifest.data["permissions"].presence&.to_sentence || "None" %></dd>
+    <dt>Migrations</dt><dd><%= pluralize(@entry.manifest.migrations.length, "reviewed migration") %></dd>
+  </dl>
+  <p>The host operator needs writable database and persistent storage access. Installation runs the reviewed migrations and restarts the web and worker processes. Enablement is a separate Owner action.</p>
+<% end %>
+<% if @confirmation %>
+  <%= button_to "Request this exact installation", admin_module_catalog_requests_path,
+    params: { confirmation: @confirmation } %>
+<% end %>
+<p><%= link_to "Back to Modules", admin_modules_path %></p>

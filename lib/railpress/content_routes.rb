@@ -23,7 +23,9 @@ module Railpress
     end
     def reserved_content_slug?(type, value)
       parts = value.to_s.split("/")
-      RESERVED.include?(parts.first) || (type == "Page" && parts.length > 1 && %w[theme-assets theme-media].include?(parts.first))
+      return true if RESERVED.include?(parts.first)
+      type == "Page" && ((parts.length > 1 && %w[theme-assets theme-preview-assets theme-media].include?(parts.first)) ||
+        (defined?(Railpress::Extensions) && Railpress::Extensions.registry.reserved?("/#{value}")))
     end
     def public_path(content, site)
       return "/" if site.home_mode == "static" && site.homepage_content_id == content.id && content.is_a?(Page)

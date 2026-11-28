@@ -39,5 +39,26 @@ module Themes
       raise Manager::Conflict, "choose_dusk_overlay_predecessor" if choices.length > 1
       choices.first
     end
+    def map_upload(state, installation)
+      source = state.active_overlay
+      previous = source&.theme_installation
+      return [ {}, {} ] unless previous&.theme_key == installation.theme_key &&
+        Railpress::Releases.compare_versions(previous.version, installation.version).negative?
+      Storage.load(previous)
+      options = source.options.slice("footer", "brand_label", "header_style", "footer_style")
+      reset = []
+      { "palette" => "palettes", "font" => "fonts", "layout" => "layouts", "home_pattern" => "home_patterns" }.each do |field, choices|
+        old = source.options[field]
+        if installation.manifest.fetch("options").fetch(choices).include?(old)
+          options[field] = old
+        else
+          reset << field
+        end
+      end
+      source.media_details.each do |name, detail|
+        options["#{name}_id"] = detail.fetch("asset_id")
+      end
+      [ options, { "from_overlay" => source.id, "mapped" => options.keys.sort, "reset" => reset.sort } ]
+    end
   end
 end

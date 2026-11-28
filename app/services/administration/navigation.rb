@@ -23,6 +23,7 @@ module Administration
       [ "settings", "Settings", [ entry("settings", "Site settings", :admin_settings_path, :manage_identity), entry("accounts", "Accounts", :admin_accounts_path, :manage_identity), entry("privacy", "Privacy", :admin_privacy_path, :manage_identity) ] ],
       [ "tools", "Tools", [
         entry("updates", "Updates", :admin_updates_path, :inspect_updates),
+        entry("modules", "Modules", :admin_modules_path, :manage_modules),
         entry("official_news", "Official news", :admin_official_news_path, :manage_identity),
         entry("portability", "Import / Export", :admin_imports_path, :manage_identity),
         entry("readiness", "Site Readiness", :admin_readiness_path, :view_readiness),
