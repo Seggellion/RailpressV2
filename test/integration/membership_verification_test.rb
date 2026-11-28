@@ -298,25 +298,35 @@ class MembershipVerificationTest < ActionDispatch::IntegrationTest
   test "core routes enforce CSRF noindex no-store and Member credentials cannot access staff" do
     configure_membership("email")
     csrf = csrf_token_for(self, "/login/members/login")
-    post "/login/members/email", params: { email: "reader@example.invalid" }
+    assert_equal "same-origin", response.headers["Referrer-Policy"]
+    origin = request.base_url
+    post "/login/members/email", params: { email: "reader@example.invalid" }, headers: { "Origin" => origin }
     assert_response :unprocessable_entity
-    post "/login/members/email", params: { authenticity_token: csrf, email: "reader@example.invalid", role: "owner" }
+    [ "null", "https://unrelated.example.invalid" ].each do |received_origin|
+      post "/login/members/email", params: { authenticity_token: csrf, email: "reader@example.invalid" }, headers: { "Origin" => received_origin }
+      assert_response :unprocessable_entity
+    end
+    assert_empty @providers.messages
+    post "/login/members/email", params: { authenticity_token: csrf, email: "reader@example.invalid", role: "owner" },
+      headers: { "Origin" => origin }
     assert_response :see_other
     assert_redirected_to "/login/members/verify"
     proof = @providers.messages.last[:token]
     get "/login/members/verify"
     assert_response :ok
     assert_equal "no-store", response.headers["Cache-Control"]
-    assert_equal "no-referrer", response.headers["Referrer-Policy"]
+    assert_equal "same-origin", response.headers["Referrer-Policy"]
     assert_select 'link[rel="canonical"]', count: 0
     assert_select 'meta[name="robots"][content="noindex, nofollow"]'
     assert_equal 0, Member.count
-    post "/login/members/verify", params: { verification_token: proof, authenticity_token: csrf_token_for(self, "/login/members/verify") }
+    post "/login/members/verify", params: { verification_token: proof, authenticity_token: csrf_token_for(self, "/login/members/verify") },
+      headers: { "Origin" => origin }
     assert_redirected_to "/login/members/account"
     get "/login/members/account"
     assert_response :ok
     get "/login/members/export"
     assert_response :ok
+    assert_equal "no-referrer", response.headers["Referrer-Policy"]
     refute_match(/token_digest|deadline_binding|password|client_secret|auth_version/, response.body)
     get "/admin/accounts"
     assert_redirected_to "/login"
@@ -415,6 +425,7 @@ class MembershipVerificationTest < ActionDispatch::IntegrationTest
     data = @providers.authorize(target)
     get "/login/members/discord/callback", params: { state: data[:state], code: data[:code], iss: data[:issuer] }
     assert_redirected_to "/login/members/account"
+    assert_equal "no-referrer", response.headers["Referrer-Policy"]
     assert_equal 1, Member.count
     assert_equal 1, MemberIdentity.count
     assert_equal [ "owner" ], User.pluck(:role)

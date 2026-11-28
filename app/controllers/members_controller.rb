@@ -31,6 +31,7 @@ class MembersController < ApplicationController
       member_session: current, confirmation: params[:confirmation] == "1")
     # A form redirect is itself governed by form-action in Chrome. Keep the
     # strict policy and require an ordinary explicit link from a core handoff.
+    response.set_header("Referrer-Policy", "no-referrer")
     response.set_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
     @discord_authorization_url = target
     destination = URI.parse(target)
@@ -87,7 +88,8 @@ class MembersController < ApplicationController
   private
   def core_headers
     super
-    response.set_header("Referrer-Policy", "no-referrer")
+    # Same-origin form submissions must send their origin for Rails CSRF verification.
+    response.set_header("Referrer-Policy", "no-referrer") if %w[discord_callback export].include?(action_name)
     response.set_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
   end
   def load_site
