@@ -32,7 +32,7 @@ class ModuleForwardRepairTest < ActionDispatch::IntegrationTest
     context = Ext::Migrations.context(entry)
     first, second = entry.manifest.migrations
     context.run(:up, first.fetch("version").to_i)
-    [first, second].each_with_index do |migration, index|
+    [ first, second ].each_with_index do |migration, index|
       ExtensionMigrationRecord.create!(site: @extension_site, module_id: entry.id,
         version: migration["version"], sha256: migration["sha256"], state: index.zero? ? "applied" : "started")
     end
